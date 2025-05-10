@@ -1,40 +1,26 @@
-// script.js - fixes PDF open button for all browsers
+// script.js - simplified PDF load with fallback if viewer fails
 
-const examSelect = document.getElementById("examSelect");
 const questionInput = document.getElementById("questionInput");
 const responseBox = document.getElementById("responseBox");
 const historyList = document.getElementById("historyList");
 const fileInfo = document.getElementById("fileInfo");
-const pdfStatus = document.getElementById("pdfStatus");
-const openPdfBtn = document.getElementById("openPdfBtn");
-const pdfLink = document.getElementById("pdfLink");
 
-let currentExamPdf = "";
 let currentExamId = "";
+let currentExamPdf = "";
 
-examSelect.addEventListener("change", () => {
-  const selectedValue = examSelect.value;
-  if (!selectedValue) return;
+function loadExam(pdfFile, examId) {
+  const pdfPath = `/exams/KET/${pdfFile}`;
+  currentExamPdf = pdfFile;
+  currentExamId = examId;
 
-  const data = JSON.parse(selectedValue);
-  currentExamPdf = data.pdf;
-  currentExamId = data.id;
+  fileInfo.innerHTML = `📄 PDF: <a href="${pdfPath}" target="_blank">${pdfFile}</a><br>🖼️ PNG: ${examId}_page1.png ~ ${examId}_page13.png`;
 
-  const fullPdfPath = `/${currentExamPdf}`;
-  pdfLink.href = fullPdfPath;
-
-  openPdfBtn.onclick = null;
-  openPdfBtn.onclick = () => {
-    if (currentExamPdf) {
-      window.open(fullPdfPath, "_blank");
-    } else {
-      alert("⚠️ 请先选择一个考试");
-    }
-  };
-
-  fileInfo.textContent = `📄 PDF: ${data.pdf}\n🖼️ PNG: ${data.id}_page1.png ~ ${data.id}_page13.png`;
-  pdfStatus.textContent = `📄 试卷路径：${data.pdf}`;
-});
+  // Try to open PDF in viewer
+  const win = window.open(pdfPath, "_blank");
+  if (!win || win.closed || typeof win.closed === "undefined") {
+    alert("⚠️ 无法在新标签页打开 PDF，请检查浏览器设置。");
+  }
+}
 
 function submitQuestion() {
   const question = questionInput.value.trim();
