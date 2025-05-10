@@ -1,4 +1,4 @@
-// script.js - expose loadExam globally so buttons work
+// script.js - fallback to addEventListener for stable buttons
 
 const questionInput = document.getElementById("questionInput");
 const responseBox = document.getElementById("responseBox");
@@ -64,5 +64,14 @@ function addToHistory(question, answer) {
   historyList.prepend(li);
 }
 
-// ✅ Expose function for inline HTML buttons
-window.loadExam = loadExam;
+// ✅ Attach stable button click listeners once DOM is loaded
+
+document.addEventListener('DOMContentLoaded', () => {
+  const btn1 = document.getElementById('btn-ket1');
+  const btn2 = document.getElementById('btn-ket2');
+  const btn3 = document.getElementById('btn-pet1');
+
+  if (btn1) btn1.addEventListener('click', () => loadExam('ket-exam-1.pdf', 'ket01'));
+  if (btn2) btn2.addEventListener('click', () => loadExam('ket-exam-2.pdf', 'ket02'));
+  if (btn3) btn3.addEventListener('click', () => loadExam('pet-exam-1.pdf', 'pet01'));
+});
