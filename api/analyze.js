@@ -1,4 +1,4 @@
-// File: /api/analyze.js (Vercel Serverless Function)
+// File: /api/analyze.js (Updated for GPT-4o Vision)
 
 import { OpenAI } from "openai";
 
@@ -12,24 +12,25 @@ export default async function handler(req, res) {
   try {
     const { messages, prompt } = req.body;
 
-    if (!messages || !Array.isArray(messages)) {
-      return res.status(400).json({ error: "Missing or invalid 'messages' array." });
+    if (!Array.isArray(messages) || !messages.some(m => m.type === "image_url")) {
+      return res.status(400).json({ error: "Missing or invalid message format. Ensure it includes image_url blocks." });
     }
 
-    const completion = await openai.chat.completions.create({
+    const chatCompletion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "user",
-          content: messages
+          content: messages  // An array of { type: 'text' | 'image_url', ... }
         }
       ]
     });
 
-    const answer = completion.choices[0].message.content;
-    res.status(200).json({ response: answer });
+    const answer = chatCompletion.choices[0]?.message?.content || "No response from GPT.";
+    return res.status(200).json({ response: answer });
+
   } catch (error) {
-    console.error("GPT API error:", error);
-    res.status(500).json({ error: error.message || "Internal server error" });
+    console.error("GPT Vision API error:", error);
+    return res.status(500).json({ error: error.message || "Internal server error" });
   }
 }
