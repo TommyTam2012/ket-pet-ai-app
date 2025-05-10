@@ -1,4 +1,4 @@
-// script.js - handles PDF preview and GPT image array using dropdown metadata
+// script.js - enhanced with PDF status feedback
 
 const examSelect = document.getElementById("examSelect");
 const pdfViewer = document.getElementById("pdfViewer");
@@ -6,6 +6,7 @@ const questionInput = document.getElementById("questionInput");
 const responseBox = document.getElementById("responseBox");
 const historyList = document.getElementById("historyList");
 const fileInfo = document.getElementById("fileInfo");
+const pdfStatus = document.getElementById("pdfStatus");
 
 let currentExamPdf = "";
 let currentExamId = "";
@@ -22,6 +23,7 @@ examSelect.addEventListener("change", () => {
   pdfViewer.src = fullPdfPath;
 
   fileInfo.textContent = `📄 PDF: ${data.pdf}\n🖼️ PNG: ${data.id}_page1.png ~ ${data.id}_page13.png`;
+  pdfStatus.textContent = `📄 正在加载试卷 (${data.pdf})...`;
 });
 
 function submitQuestion() {
@@ -34,7 +36,6 @@ function submitQuestion() {
     { type: "text", text: question }
   ];
 
-  // Add 13 PNG image URLs for GPT-4o vision
   for (let i = 1; i <= 13; i++) {
     const imageUrl = `/exams/KET/${currentExamId}_page${i}.png`;
     imageMessages.push({
