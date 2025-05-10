@@ -1,4 +1,4 @@
-// script.js - updated to display English and Chinese GPT responses
+// script.js - now includes TTS for English response
 
 console.log("🟢 script.js loaded successfully");
 
@@ -76,5 +76,16 @@ function addToHistory(question, answer) {
   li.innerHTML = `<strong>问：</strong>${question}<br/><strong>答：</strong>${answer}`;
   historyList.prepend(li);
 }
+
+function playTTS() {
+  const englishText = responseBox.textContent.trim();
+  if (!englishText) return;
+  const utterance = new SpeechSynthesisUtterance(englishText);
+  utterance.lang = "en-US";
+  utterance.rate = 1;
+  speechSynthesis.speak(utterance);
+}
+
+document.getElementById("ttsBtn")?.addEventListener("click", playTTS);
 
 window.submitQuestion = submitQuestion;
