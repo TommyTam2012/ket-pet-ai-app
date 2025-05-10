@@ -27,11 +27,23 @@
     .exam-btn:hover {
       background: #0055aa;
     }
+    .school-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+    }
+    .school-logo {
+      height: 60px;
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1>TommySir 的 KET / PET 阅读与语法 AI 辅助考试</h1>
+    <div class="school-header">
+      <img src="/logo.png" alt="School Logo" class="school-logo">
+      <h1>TommySir 的 KET / PET 阅读与语法 AI 辅助考试</h1>
+    </div>
   </header>
 
   <main>
@@ -39,6 +51,7 @@
       <h2>选择考试：</h2>
       <div class="exam-grid">
         <a class="exam-btn" href="/exams/KET/ket01.pdf" target="_blank">📄 KET Test 1</a>
+        <a class="exam-btn" href="/exams/PET/pet01.pdf" target="_blank">📄 PET Test 1</a>
       </div>
     </section>
 
