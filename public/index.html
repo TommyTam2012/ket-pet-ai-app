@@ -38,11 +38,27 @@
     <section class="selectors">
       <h2>选择考试：</h2>
       <div class="exam-grid">
-        <a class="exam-btn" href="/exams/KET/ket-exam-1.pdf" target="_blank">📄 KET Test 1</a>
-        <a class="exam-btn" href="/exams/KET/ket-exam-2.pdf" target="_blank">📄 KET Test 2</a>
-        <a class="exam-btn" href="/exams/PET/pet-exam-1.pdf" target="_blank">📄 PET Test 1</a>
+        <a class="exam-btn" href="/exams/KET/ket01.pdf" target="_blank">📄 KET Test 1</a>
       </div>
     </section>
+
+    <section class="question">
+      <h2>问题查询</h2>
+      <textarea id="questionInput" placeholder="请输入您的问题..."></textarea>
+      <button onclick="submitQuestion()">提交问题</button>
+    </section>
+
+    <section class="response">
+      <h2>回答结果</h2>
+      <div id="responseBox">提交问题后将显示答案</div>
+    </section>
+
+    <section class="history">
+      <h2>历史对话</h2>
+      <ul id="historyList"></ul>
+    </section>
   </main>
+
+  <script src="/script.js"></script>
 </body>
 </html>
