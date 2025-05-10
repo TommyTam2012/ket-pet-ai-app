@@ -5,6 +5,7 @@ const pdfViewer = document.getElementById("pdfViewer");
 const questionInput = document.getElementById("questionInput");
 const responseBox = document.getElementById("responseBox");
 const historyList = document.getElementById("historyList");
+const fileInfo = document.getElementById("fileInfo");
 
 let currentExamPdf = "";
 let currentExamId = "";
@@ -17,7 +18,10 @@ examSelect.addEventListener("change", () => {
   currentExamPdf = data.pdf;
   currentExamId = data.id;
 
-  pdfViewer.src = `/${currentExamPdf}`;
+  const fullPdfPath = `/${currentExamPdf}`;
+  pdfViewer.src = fullPdfPath;
+
+  fileInfo.textContent = `📄 PDF: ${data.pdf}\n🖼️ PNG: ${data.id}_page1.png ~ ${data.id}_page13.png`;
 });
 
 function submitQuestion() {
