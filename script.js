@@ -1,4 +1,4 @@
-// script.js - now supports dynamic GPT image requests per selected exam
+// script.js - handles PDF preview and GPT image array using dropdown metadata
 
 const examSelect = document.getElementById("examSelect");
 const pdfViewer = document.getElementById("pdfViewer");
@@ -6,16 +6,18 @@ const questionInput = document.getElementById("questionInput");
 const responseBox = document.getElementById("responseBox");
 const historyList = document.getElementById("historyList");
 
+let currentExamPdf = "";
 let currentExamId = "";
 
 examSelect.addEventListener("change", () => {
-  const selectedPdfPath = examSelect.value;
-  pdfViewer.src = `/${selectedPdfPath}`;
+  const selectedValue = examSelect.value;
+  if (!selectedValue) return;
 
-  // Extract exam ID (e.g., ket01 from exams/KET/ket01.pdf)
-  const parts = selectedPdfPath.split("/");
-  const filename = parts[parts.length - 1];
-  currentExamId = filename.replace(".pdf", "");
+  const data = JSON.parse(selectedValue);
+  currentExamPdf = data.pdf;
+  currentExamId = data.id;
+
+  pdfViewer.src = `/${currentExamPdf}`;
 });
 
 function submitQuestion() {
@@ -37,7 +39,7 @@ function submitQuestion() {
     });
   }
 
-  fetch("/analyze", {
+  fetch("/api/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt: question, messages: imageMessages })
