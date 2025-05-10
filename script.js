@@ -1,4 +1,4 @@
-// script.js - handles PDF buttons instead of iframe viewer
+// script.js - fixes PDF open button for all browsers
 
 const examSelect = document.getElementById("examSelect");
 const questionInput = document.getElementById("questionInput");
@@ -22,7 +22,15 @@ examSelect.addEventListener("change", () => {
 
   const fullPdfPath = `/${currentExamPdf}`;
   pdfLink.href = fullPdfPath;
-  openPdfBtn.onclick = () => window.open(fullPdfPath, "_blank");
+
+  openPdfBtn.onclick = null;
+  openPdfBtn.onclick = () => {
+    if (currentExamPdf) {
+      window.open(fullPdfPath, "_blank");
+    } else {
+      alert("⚠️ 请先选择一个考试");
+    }
+  };
 
   fileInfo.textContent = `📄 PDF: ${data.pdf}\n🖼️ PNG: ${data.id}_page1.png ~ ${data.id}_page13.png`;
   pdfStatus.textContent = `📄 试卷路径：${data.pdf}`;
