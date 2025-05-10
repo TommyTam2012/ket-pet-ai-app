@@ -1,0 +1,7 @@
+# requirements.txt - For GPT Vision backend
+flask
+openai
+python-dotenv
+requests
+Pillow
+pdf2image
