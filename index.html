@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KET / PET AI 考试助手</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>TommySir 的 KET / PET 阅读与语法 AI 辅助考试</h1>
+  </header>
+
+  <main>
+    <section class="selectors">
+      <label for="examSelect">选择考试：</label>
+      <select id="examSelect">
+        <option value="">-- 请选择一个考试 --</option>
+        <option value="ket-exam-1.pdf">KET 模拟考试 1</option>
+        <option value="ket-exam-2.pdf">KET 模拟考试 2</option>
+        <option value="pet-exam-1.pdf">PET 模拟考试 1</option>
+        <option value="pet-exam-2.pdf">PET 模拟考试 2</option>
+      </select>
+    </section>
+
+    <section class="preview">
+      <h2>考试预览</h2>
+      <iframe id="pdfViewer" width="100%" height="500px" src=""></iframe>
+    </section>
+
+    <section class="question">
+      <h2>问题查询</h2>
+      <textarea id="questionInput" placeholder="请输入您的问题..."></textarea>
+      <button onclick="submitQuestion()">提交问题</button>
+    </section>
+
+    <section class="response">
+      <h2>回答结果</h2>
+      <div id="responseBox">提交问题后将显示答案</div>
+    </section>
+
+    <section class="history">
+      <h2>历史对话</h2>
+      <ul id="historyList"></ul>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
