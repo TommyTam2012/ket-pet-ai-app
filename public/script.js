@@ -1,3 +1,5 @@
+// script.js - improved error handling for non-JSON GPT responses
+
 console.log("🟢 script.js loaded successfully");
 
 const fileInfo = document.getElementById("fileInfo");
@@ -5,7 +7,7 @@ const responseBox = document.getElementById("responseBox");
 const questionInput = document.getElementById("questionInput");
 const historyList = document.getElementById("historyList");
 
-let currentExamId = "ket01"; // default to KET test for now
+let currentExamId = "ket01";
 let currentExamPdf = "ket01.pdf";
 
 function submitQuestion() {
@@ -36,7 +38,15 @@ function submitQuestion() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt: question, messages: imageMessages })
   })
-    .then(res => res.json())
+    .then(async res => {
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch (err) {
+        console.error("❌ Server returned non-JSON:", text);
+        throw new Error("服务器返回非 JSON 内容");
+      }
+    })
     .then(data => {
       const answer = data.response || data.error || "无法获取回答。";
       responseBox.textContent = answer;
@@ -56,5 +66,4 @@ function addToHistory(question, answer) {
   historyList.prepend(li);
 }
 
-// ✅ Expose the function so the HTML onclick can call it
 window.submitQuestion = submitQuestion;
