@@ -1,36 +1,61 @@
-// File: /api/analyze.js (Updated for GPT-4o Vision)
+// script.js - now includes visible logs to confirm execution
 
-import { OpenAI } from "openai";
+console.log("🟢 script.js loaded successfully");
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const fileInfo = document.getElementById("fileInfo");
+const responseBox = document.getElementById("responseBox");
+const questionInput = document.getElementById("questionInput");
+const historyList = document.getElementById("historyList");
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+let currentExamId = "";
+let currentExamPdf = "";
+
+function submitQuestion() {
+  console.log("🔥 submitQuestion triggered!");
+
+  const question = questionInput.value.trim();
+  if (!question || !currentExamId) {
+    alert("⚠️ 请先选择试卷并输入问题。");
+    return;
   }
 
-  try {
-    const { messages, prompt } = req.body;
+  responseBox.textContent = "正在分析，请稍候...";
 
-    if (!Array.isArray(messages) || !messages.some(m => m.type === "image_url")) {
-      return res.status(400).json({ error: "Missing or invalid message format. Ensure it includes image_url blocks." });
-    }
+  const imageMessages = [
+    { type: "text", text: question }
+  ];
 
-    const chatCompletion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "user",
-          content: messages  // An array of { type: 'text' | 'image_url', ... }
-        }
-      ]
+  for (let i = 1; i <= 13; i++) {
+    const imageUrl = `/exams/KET/${currentExamId}_page${i}.png`;
+    imageMessages.push({
+      type: "image_url",
+      image_url: { url: window.location.origin + imageUrl }
+    });
+  }
+
+  fetch("/api/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt: question, messages: imageMessages })
+  })
+    .then(res => res.json())
+    .then(data => {
+      const answer = data.response || data.error || "无法获取回答。";
+      responseBox.textContent = answer;
+      addToHistory(question, answer);
+    })
+    .catch(err => {
+      responseBox.textContent = "发生错误，请稍后重试。";
+      console.error("❌ GPT error:", err);
     });
 
-    const answer = chatCompletion.choices[0]?.message?.content || "No response from GPT.";
-    return res.status(200).json({ response: answer });
-
-  } catch (error) {
-    console.error("GPT Vision API error:", error);
-    return res.status(500).json({ error: error.message || "Internal server error" });
-  }
+  questionInput.value = "";
 }
+
+function addToHistory(question, answer) {
+  const li = document.createElement("li");
+  li.innerHTML = `<strong>问：</strong>${question}<br/><strong>答：</strong>${answer}`;
+  historyList.prepend(li);
+}
+
+window.submitQuestion = submitQuestion;
