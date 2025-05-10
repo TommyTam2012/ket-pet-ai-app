@@ -1,48 +1,60 @@
-<!DOCTYPE html>
-<html lang="zh">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KET / PET AI 考试助手</title>
-  <link rel="stylesheet" href="/style.css">
-  <style>
-    .exam-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      margin-bottom: 20px;
-    }
-    .exam-btn {
-      background: #003366;
-      color: white;
-      padding: 14px 20px;
-      border-radius: 10px;
-      font-size: 16px;
-      width: 180px;
-      text-align: center;
-      text-decoration: none;
-      display: inline-block;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    .exam-btn:hover {
-      background: #0055aa;
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <h1>TommySir 的 KET / PET 阅读与语法 AI 辅助考试</h1>
-  </header>
+console.log("🟢 script.js loaded successfully");
 
-  <main>
-    <section class="selectors">
-      <h2>选择考试：</h2>
-      <div class="exam-grid">
-        <a class="exam-btn" href="/exams/KET/ket-exam-1.pdf" target="_blank">📄 KET Test 1</a>
-        <a class="exam-btn" href="/exams/KET/ket-exam-2.pdf" target="_blank">📄 KET Test 2</a>
-        <a class="exam-btn" href="/exams/PET/pet-exam-1.pdf" target="_blank">📄 PET Test 1</a>
-      </div>
-    </section>
-  </main>
-</body>
-</html>
+const fileInfo = document.getElementById("fileInfo");
+const responseBox = document.getElementById("responseBox");
+const questionInput = document.getElementById("questionInput");
+const historyList = document.getElementById("historyList");
+
+let currentExamId = "ket01"; // default to KET test for now
+let currentExamPdf = "ket01.pdf";
+
+function submitQuestion() {
+  console.log("🔥 submitQuestion triggered!");
+
+  const question = questionInput.value.trim();
+  if (!question || !currentExamId) {
+    alert("⚠️ 请先选择试卷并输入问题。");
+    return;
+  }
+
+  responseBox.textContent = "正在分析，请稍候...";
+
+  const imageMessages = [
+    { type: "text", text: question }
+  ];
+
+  for (let i = 1; i <= 13; i++) {
+    const imageUrl = `/exams/KET/${currentExamId}_page${i}.png`;
+    imageMessages.push({
+      type: "image_url",
+      image_url: { url: window.location.origin + imageUrl }
+    });
+  }
+
+  fetch("/api/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt: question, messages: imageMessages })
+  })
+    .then(res => res.json())
+    .then(data => {
+      const answer = data.response || data.error || "无法获取回答。";
+      responseBox.textContent = answer;
+      addToHistory(question, answer);
+    })
+    .catch(err => {
+      responseBox.textContent = "发生错误，请稍后重试。";
+      console.error("❌ GPT error:", err);
+    });
+
+  questionInput.value = "";
+}
+
+function addToHistory(question, answer) {
+  const li = document.createElement("li");
+  li.innerHTML = `<strong>问：</strong>${question}<br/><strong>答：</strong>${answer}`;
+  historyList.prepend(li);
+}
+
+// ✅ Expose the function so the HTML onclick can call it
+window.submitQuestion = submitQuestion;
