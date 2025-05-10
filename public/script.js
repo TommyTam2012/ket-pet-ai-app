@@ -1,4 +1,4 @@
-// script.js - now includes TTS for English response
+// script.js - updated with British female TTS and persistent bilingual output
 
 console.log("🟢 script.js loaded successfully");
 
@@ -80,8 +80,15 @@ function addToHistory(question, answer) {
 function playTTS() {
   const englishText = responseBox.textContent.trim();
   if (!englishText) return;
+
+  const voices = speechSynthesis.getVoices();
+  let ukFemale = voices.find(v => v.name.includes("Google UK English Female"));
+  if (!ukFemale) ukFemale = voices.find(v => v.lang === "en-GB");
+  if (!ukFemale) ukFemale = voices[0];
+
   const utterance = new SpeechSynthesisUtterance(englishText);
-  utterance.lang = "en-US";
+  utterance.voice = ukFemale;
+  utterance.lang = "en-GB";
   utterance.rate = 1;
   speechSynthesis.speak(utterance);
 }
