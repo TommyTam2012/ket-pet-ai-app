@@ -5,6 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>KET / PET AI 考试助手</title>
   <link rel="stylesheet" href="/style.css">
+  <style>
+    .exam-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .exam-btn {
+      background: #003366;
+      color: white;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      width: 180px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s ease;
+    }
+    .exam-btn:hover {
+      background: #0055aa;
+    }
+  </style>
 </head>
 <body>
   <header>
@@ -13,26 +36,13 @@
 
   <main>
     <section class="selectors">
-      <label for="examSelect">选择考试：</label>
-      <select id="examSelect">
-        <option value="">-- 请选择一个考试 --</option>
-        <option value='{"pdf":"exams/KET/ket01.pdf","id":"ket01"}'>
-          KET 模拟考试 1 （ket01.pdf + ket01_page1.png ~ ket01_page13.png）
-        </option>
-        <option value='{"pdf":"exams/PET/pet01.pdf","id":"pet01"}'>
-          PET 模拟考试 1 （pet01.pdf + pet01_page1.png ~ pet01_page13.png）
-        </option>
-      </select>
-      <div id="fileInfo" style="margin-top: 10px; font-size: 0.9em; color: #333;"></div>
-    </section>
-
-    <section class="preview">
-      <h2>考试预览</h2>
-      <div id="pdfStatus" style="margin-bottom: 10px; font-size: 0.95em;">
-        📄 请点击下方按钮打开 PDF 试卷
+      <h2>选择考试：</h2>
+      <div class="exam-grid">
+        <button class="exam-btn" onclick="loadExam('ket-exam-1.pdf', 'ket01')">📄 KET Test 1</button>
+        <button class="exam-btn" onclick="loadExam('ket-exam-2.pdf', 'ket02')">📄 KET Test 2</button>
+        <button class="exam-btn" onclick="loadExam('pet-exam-1.pdf', 'pet01')">📄 PET Test 1</button>
       </div>
-      <button id="openPdfBtn" style="margin-bottom: 8px;">📂 打开 PDF 试卷</button><br>
-      <a id="pdfLink" href="#" target="_blank" download>🔗 下载 PDF</a>
+      <div id="fileInfo" style="font-size: 0.95em; color: #333;"></div>
     </section>
 
     <section class="question">
