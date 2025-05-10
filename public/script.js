@@ -1,4 +1,4 @@
-// script.js - improved error handling for non-JSON GPT responses
+// script.js - step 1: add Chinese translation after English GPT response
 
 console.log("🟢 script.js loaded successfully");
 
@@ -6,6 +6,12 @@ const fileInfo = document.getElementById("fileInfo");
 const responseBox = document.getElementById("responseBox");
 const questionInput = document.getElementById("questionInput");
 const historyList = document.getElementById("historyList");
+const translationBox = document.createElement("div");
+translationBox.id = "chineseTranslation";
+translationBox.style.marginTop = "10px";
+translationBox.style.fontSize = "0.95em";
+translationBox.style.color = "#333";
+responseBox.insertAdjacentElement("afterend", translationBox);
 
 let currentExamId = "ket01";
 let currentExamPdf = "ket01.pdf";
@@ -20,6 +26,7 @@ function submitQuestion() {
   }
 
   responseBox.textContent = "正在分析，请稍候...";
+  translationBox.textContent = "";
 
   const imageMessages = [
     { type: "text", text: question }
@@ -47,10 +54,29 @@ function submitQuestion() {
         throw new Error("服务器返回非 JSON 内容");
       }
     })
-    .then(data => {
+    .then(async data => {
       const answer = data.response || data.error || "无法获取回答。";
       responseBox.textContent = answer;
-      addToHistory(question, answer);
+
+      // Translate the English answer to Chinese using OpenAI (locally simulated)
+      const translated = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${OPENAI_API_KEY}` // you'll need to inject this safely
+        },
+        body: JSON.stringify({
+          model: "gpt-4",
+          messages: [
+            { role: "system", content: "Please translate this to Chinese." },
+            { role: "user", content: answer }
+          ]
+        })
+      }).then(res => res.json()).then(d => d.choices?.[0]?.message?.content || "翻译失败");
+
+      translationBox.textContent = `🇨🇳 中文翻译：${translated}`;
+
+      addToHistory(question, `${answer}<br><em>🇨🇳 中文翻译：</em>${translated}`);
     })
     .catch(err => {
       responseBox.textContent = "发生错误，请稍后重试。";
