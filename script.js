@@ -1,4 +1,4 @@
-// script.js - simplified PDF load with fallback if viewer fails
+// script.js - expose loadExam globally so buttons work
 
 const questionInput = document.getElementById("questionInput");
 const responseBox = document.getElementById("responseBox");
@@ -15,7 +15,6 @@ function loadExam(pdfFile, examId) {
 
   fileInfo.innerHTML = `📄 PDF: <a href="${pdfPath}" target="_blank">${pdfFile}</a><br>🖼️ PNG: ${examId}_page1.png ~ ${examId}_page13.png`;
 
-  // Try to open PDF in viewer
   const win = window.open(pdfPath, "_blank");
   if (!win || win.closed || typeof win.closed === "undefined") {
     alert("⚠️ 无法在新标签页打开 PDF，请检查浏览器设置。");
@@ -64,3 +63,6 @@ function addToHistory(question, answer) {
   li.innerHTML = `<strong>问：</strong>${question}<br/><strong>答：</strong>${answer}`;
   historyList.prepend(li);
 }
+
+// ✅ Expose function for inline HTML buttons
+window.loadExam = loadExam;
