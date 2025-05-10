@@ -1,4 +1,4 @@
-// File: /api/analyze.js - updated to return both English and Chinese responses
+// File: /api/analyze.js - improved translation prompt for Chinese
 
 import { OpenAI } from "openai";
 
@@ -31,12 +31,18 @@ export default async function handler(req, res) {
 
     const english = englishResponse.choices[0]?.message?.content?.trim() || "";
 
-    // Step 2: Ask GPT to translate that to Chinese
+    // Step 2: Ask GPT to translate that to Chinese using clearer prompt
     const translationResponse = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
-        { role: "system", content: "请将以下内容翻译成简体中文。" },
-        { role: "user", content: english }
+        {
+          role: "system",
+          content: "你是一名专业翻译，请将用户提供的英文内容完整翻译成简体中文。不要回答其他内容，只提供翻译。"
+        },
+        {
+          role: "user",
+          content: english
+        }
       ]
     });
 
