@@ -1,8 +1,7 @@
-# File: main.py
+# main.py - receives multiple images and prompts from UI, sends to GPT-4o Vision
 
 from flask import Flask, request, jsonify
 import openai
-import base64
 import os
 from dotenv import load_dotenv
 
@@ -12,36 +11,30 @@ app = Flask(__name__)
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 @app.route("/analyze", methods=["POST"])
-def analyze_image():
+def analyze():
     try:
         data = request.json
-        image_data = data.get("image_base64")
-        prompt = data.get("prompt", "Please analyze this exam page.")
+        messages = data.get("messages")
 
-        if not image_data:
-            return jsonify({"error": "Missing image_base64"}), 400
+        if not messages:
+            return jsonify({"error": "Missing messages array."}), 400
 
-        result = openai.ChatCompletion.create(
+        result = openai.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "user", "content": [
-                    {"type": "text", "text": prompt},
-                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_data}"}}
-                ]}
+                {"role": "user", "content": messages}
             ]
         )
 
-        answer = result["choices"][0]["message"]["content"]
+        answer = result.choices[0].message.content
         return jsonify({"response": answer})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 @app.route("/")
 def index():
-    return "KET/PET AI Vision API is running."
-
+    return "✅ KET/PET GPT Vision backend is running."
 
 if __name__ == "__main__":
     app.run(debug=True)
