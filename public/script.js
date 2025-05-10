@@ -1,4 +1,4 @@
-// script.js - step 1: add Chinese translation after English GPT response
+// script.js - updated to display English and Chinese GPT responses
 
 console.log("🟢 script.js loaded successfully");
 
@@ -54,26 +54,11 @@ function submitQuestion() {
         throw new Error("服务器返回非 JSON 内容");
       }
     })
-    .then(async data => {
-      const answer = data.response || data.error || "无法获取回答。";
+    .then(data => {
+      const answer = data.response || "无法获取英文回答。";
+      const translated = data.translated || "无法获取中文翻译。";
+
       responseBox.textContent = answer;
-
-      // Translate the English answer to Chinese using OpenAI (locally simulated)
-      const translated = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENAI_API_KEY}` // you'll need to inject this safely
-        },
-        body: JSON.stringify({
-          model: "gpt-4",
-          messages: [
-            { role: "system", content: "Please translate this to Chinese." },
-            { role: "user", content: answer }
-          ]
-        })
-      }).then(res => res.json()).then(d => d.choices?.[0]?.message?.content || "翻译失败");
-
       translationBox.textContent = `🇨🇳 中文翻译：${translated}`;
 
       addToHistory(question, `${answer}<br><em>🇨🇳 中文翻译：</em>${translated}`);
