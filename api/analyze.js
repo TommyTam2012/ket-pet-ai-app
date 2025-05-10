@@ -1,4 +1,4 @@
-// File: /api/analyze.js (Updated with GPT payload logging)
+// File: /api/analyze.js - updated to return both English and Chinese responses
 
 import { OpenAI } from "openai";
 
@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { messages, prompt } = req.body;
+    const { messages } = req.body;
 
     if (!Array.isArray(messages) || !messages.some(m => m.type === "image_url")) {
       return res.status(400).json({ error: "Missing or invalid message format. Ensure it includes image_url blocks." });
@@ -18,7 +18,8 @@ export default async function handler(req, res) {
 
     console.log("📤 GPT Payload:", JSON.stringify(messages, null, 2));
 
-    const chatCompletion = await openai.chat.completions.create({
+    // Step 1: Get English response from GPT
+    const englishResponse = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
@@ -28,9 +29,20 @@ export default async function handler(req, res) {
       ]
     });
 
-    const answer = chatCompletion.choices[0]?.message?.content || "No response from GPT.";
-    return res.status(200).json({ response: answer });
+    const english = englishResponse.choices[0]?.message?.content?.trim() || "";
 
+    // Step 2: Ask GPT to translate that to Chinese
+    const translationResponse = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: "请将以下内容翻译成简体中文。" },
+        { role: "user", content: english }
+      ]
+    });
+
+    const translated = translationResponse.choices[0]?.message?.content?.trim() || "";
+
+    return res.status(200).json({ response: english, translated });
   } catch (error) {
     console.error("GPT Vision API error:", error);
     return res.status(500).json({ error: error.message || "Internal server error" });
