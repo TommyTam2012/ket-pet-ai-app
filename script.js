@@ -1,12 +1,13 @@
-// script.js - enhanced with PDF status feedback
+// script.js - handles PDF buttons instead of iframe viewer
 
 const examSelect = document.getElementById("examSelect");
-const pdfViewer = document.getElementById("pdfViewer");
 const questionInput = document.getElementById("questionInput");
 const responseBox = document.getElementById("responseBox");
 const historyList = document.getElementById("historyList");
 const fileInfo = document.getElementById("fileInfo");
 const pdfStatus = document.getElementById("pdfStatus");
+const openPdfBtn = document.getElementById("openPdfBtn");
+const pdfLink = document.getElementById("pdfLink");
 
 let currentExamPdf = "";
 let currentExamId = "";
@@ -20,10 +21,11 @@ examSelect.addEventListener("change", () => {
   currentExamId = data.id;
 
   const fullPdfPath = `/${currentExamPdf}`;
-  pdfViewer.src = fullPdfPath;
+  pdfLink.href = fullPdfPath;
+  openPdfBtn.onclick = () => window.open(fullPdfPath, "_blank");
 
   fileInfo.textContent = `📄 PDF: ${data.pdf}\n🖼️ PNG: ${data.id}_page1.png ~ ${data.id}_page13.png`;
-  pdfStatus.textContent = `📄 正在加载试卷 (${data.pdf})...`;
+  pdfStatus.textContent = `📄 试卷路径：${data.pdf}`;
 });
 
 function submitQuestion() {
