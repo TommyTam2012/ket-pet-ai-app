@@ -1,77 +1,48 @@
-// script.js - fallback to addEventListener for stable buttons
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KET / PET AI 考试助手</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .exam-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .exam-btn {
+      background: #003366;
+      color: white;
+      padding: 14px 20px;
+      border-radius: 10px;
+      font-size: 16px;
+      width: 180px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .exam-btn:hover {
+      background: #0055aa;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>TommySir 的 KET / PET 阅读与语法 AI 辅助考试</h1>
+  </header>
 
-const questionInput = document.getElementById("questionInput");
-const responseBox = document.getElementById("responseBox");
-const historyList = document.getElementById("historyList");
-const fileInfo = document.getElementById("fileInfo");
-
-let currentExamId = "";
-let currentExamPdf = "";
-
-function loadExam(pdfFile, examId) {
-  const pdfPath = `/exams/KET/${pdfFile}`;
-  currentExamPdf = pdfFile;
-  currentExamId = examId;
-
-  fileInfo.innerHTML = `📄 PDF: <a href="${pdfPath}" target="_blank">${pdfFile}</a><br>🖼️ PNG: ${examId}_page1.png ~ ${examId}_page13.png`;
-
-  const win = window.open(pdfPath, "_blank");
-  if (!win || win.closed || typeof win.closed === "undefined") {
-    alert("⚠️ 无法在新标签页打开 PDF，请检查浏览器设置。");
-  }
-}
-
-function submitQuestion() {
-  const question = questionInput.value.trim();
-  if (!question || !currentExamId) return;
-
-  responseBox.textContent = "正在分析，请稍候...";
-
-  const imageMessages = [
-    { type: "text", text: question }
-  ];
-
-  for (let i = 1; i <= 13; i++) {
-    const imageUrl = `/exams/KET/${currentExamId}_page${i}.png`;
-    imageMessages.push({
-      type: "image_url",
-      image_url: { url: window.location.origin + imageUrl }
-    });
-  }
-
-  fetch("/api/analyze", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt: question, messages: imageMessages })
-  })
-    .then((res) => res.json())
-    .then((data) => {
-      const answer = data.response || data.error || "无法获取回答。";
-      responseBox.textContent = answer;
-      addToHistory(question, answer);
-    })
-    .catch((err) => {
-      responseBox.textContent = "发生错误，请稍后重试。";
-      console.error(err);
-    });
-
-  questionInput.value = "";
-}
-
-function addToHistory(question, answer) {
-  const li = document.createElement("li");
-  li.innerHTML = `<strong>问：</strong>${question}<br/><strong>答：</strong>${answer}`;
-  historyList.prepend(li);
-}
-
-// ✅ Attach stable button click listeners once DOM is loaded
-
-document.addEventListener('DOMContentLoaded', () => {
-  const btn1 = document.getElementById('btn-ket1');
-  const btn2 = document.getElementById('btn-ket2');
-  const btn3 = document.getElementById('btn-pet1');
-
-  if (btn1) btn1.addEventListener('click', () => loadExam('ket-exam-1.pdf', 'ket01'));
-  if (btn2) btn2.addEventListener('click', () => loadExam('ket-exam-2.pdf', 'ket02'));
-  if (btn3) btn3.addEventListener('click', () => loadExam('pet-exam-1.pdf', 'pet01'));
-});
+  <main>
+    <section class="selectors">
+      <h2>选择考试：</h2>
+      <div class="exam-grid">
+        <a class="exam-btn" href="/exams/KET/ket-exam-1.pdf" target="_blank">📄 KET Test 1</a>
+        <a class="exam-btn" href="/exams/KET/ket-exam-2.pdf" target="_blank">📄 KET Test 2</a>
+        <a class="exam-btn" href="/exams/PET/pet-exam-1.pdf" target="_blank">📄 PET Test 1</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
