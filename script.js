@@ -1,4 +1,4 @@
-// script.js
+// script.js - now supports dynamic GPT image requests per selected exam
 
 const examSelect = document.getElementById("examSelect");
 const pdfViewer = document.getElementById("pdfViewer");
@@ -6,29 +6,41 @@ const questionInput = document.getElementById("questionInput");
 const responseBox = document.getElementById("responseBox");
 const historyList = document.getElementById("historyList");
 
+let currentExamId = "";
+
 examSelect.addEventListener("change", () => {
-  const selectedFile = examSelect.value;
-  if (selectedFile) {
-    pdfViewer.src = `/assets/exams/${selectedFile}`;
-  } else {
-    pdfViewer.src = "";
-  }
+  const selectedPdfPath = examSelect.value;
+  pdfViewer.src = `/${selectedPdfPath}`;
+
+  // Extract exam ID (e.g., ket01 from exams/KET/ket01.pdf)
+  const parts = selectedPdfPath.split("/");
+  const filename = parts[parts.length - 1];
+  currentExamId = filename.replace(".pdf", "");
 });
 
 function submitQuestion() {
   const question = questionInput.value.trim();
-  if (!question) return;
+  if (!question || !currentExamId) return;
 
-  responseBox.textContent = "正在获取回答，请稍候...";
+  responseBox.textContent = "正在分析，请稍候...";
 
-  // Placeholder: Replace with actual PNG base64 logic or backend call
+  const imageMessages = [
+    { type: "text", text: question }
+  ];
+
+  // Add 13 PNG image URLs for GPT-4o vision
+  for (let i = 1; i <= 13; i++) {
+    const imageUrl = `/exams/KET/${currentExamId}_page${i}.png`;
+    imageMessages.push({
+      type: "image_url",
+      image_url: { url: window.location.origin + imageUrl }
+    });
+  }
+
   fetch("/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      prompt: question,
-      image_base64: "iVBORw0KGgoAAA..." // Replace with real image
-    })
+    body: JSON.stringify({ prompt: question, messages: imageMessages })
   })
     .then((res) => res.json())
     .then((data) => {
