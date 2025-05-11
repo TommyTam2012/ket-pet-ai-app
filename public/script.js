@@ -1,4 +1,4 @@
-// script.js - updated with British female TTS and persistent bilingual output
+// script.js - now includes microphone input for speech-to-text
 
 console.log("🟢 script.js loaded successfully");
 
@@ -6,6 +6,7 @@ const fileInfo = document.getElementById("fileInfo");
 const responseBox = document.getElementById("responseBox");
 const questionInput = document.getElementById("questionInput");
 const historyList = document.getElementById("historyList");
+const micBtn = document.getElementById("micBtn");
 const translationBox = document.createElement("div");
 translationBox.id = "chineseTranslation";
 translationBox.style.marginTop = "10px";
@@ -94,5 +95,29 @@ function playTTS() {
 }
 
 document.getElementById("ttsBtn")?.addEventListener("click", playTTS);
+
+// 🎤 Microphone input setup
+if (window.SpeechRecognition || window.webkitSpeechRecognition) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+  recognition.lang = "zh-CN"; // or "en-US" depending on the student
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  micBtn.addEventListener("click", () => {
+    recognition.start();
+  });
+
+  recognition.onresult = (event) => {
+    const spoken = event.results[0][0].transcript;
+    questionInput.value = spoken;
+    submitQuestion();
+  };
+
+  recognition.onerror = (event) => {
+    alert("🎤 无法识别语音，请重试。");
+    console.error("SpeechRecognition error:", event.error);
+  };
+}
 
 window.submitQuestion = submitQuestion;
