@@ -1,8 +1,7 @@
-// script.js - multilingual TTS, PET/KET detection, voice input
+// script.js - now with dynamic exam switching + multilingual TTS
 
 console.log("🟢 script.js loaded successfully");
 
-const fileInfo = document.getElementById("fileInfo");
 const responseBox = document.getElementById("responseBox");
 const questionInput = document.getElementById("questionInput");
 const historyList = document.getElementById("historyList");
@@ -15,8 +14,19 @@ translationBox.style.fontSize = "0.95em";
 translationBox.style.color = "#333";
 responseBox.insertAdjacentElement("afterend", translationBox);
 
-// Default exam (can toggle later)
-let currentExamId = "ket01"; // or "pet01"
+// 🧭 Default exam
+let currentExamId = "ket01";
+
+// 🧠 Dynamically switch exam set
+function setExam(examId) {
+  currentExamId = examId;
+
+  const folder = examId.startsWith("pet") ? "pet" : "KET";
+  const pdfUrl = `/exams/${folder}/${examId}.pdf`;
+  window.open(pdfUrl, "_blank");
+
+  console.log(`📘 Exam set to ${examId}`);
+}
 
 function submitQuestion() {
   console.log("🔥 submitQuestion triggered!");
@@ -31,6 +41,7 @@ function submitQuestion() {
   translationBox.textContent = "";
 
   const examFolder = currentExamId.startsWith("pet") ? "pet" : "KET";
+
   const imageMessages = [
     { type: "text", text: question }
   ];
@@ -80,7 +91,7 @@ function addToHistory(question, answer) {
   historyList.prepend(li);
 }
 
-// 🧠 Language detection for TTS
+// 🧠 TTS language detection
 function detectLang(text) {
   return /[\u4e00-\u9fa5]/.test(text) ? "zh-CN" : "en-GB";
 }
@@ -109,7 +120,6 @@ function speakMixed(text) {
   });
 }
 
-// 🔊 Unified TTS button
 function playTTS() {
   const english = responseBox.textContent.trim();
   const chinese = translationBox.textContent.replace(/^🇨🇳 中文翻译：/, "").trim();
@@ -122,7 +132,7 @@ document.getElementById("ttsBtn")?.addEventListener("click", playTTS);
 if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
-  recognition.lang = "zh-CN"; // adjust if needed
+  recognition.lang = "zh-CN";
   recognition.continuous = false;
   recognition.interimResults = false;
 
@@ -158,5 +168,6 @@ if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   };
 }
 
-// 🌍 Expose for manual trigger
+// 🌍 Expose to window
 window.submitQuestion = submitQuestion;
+window.setExam = setExam;
