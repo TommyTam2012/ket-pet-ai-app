@@ -1,4 +1,4 @@
-// script.js - improved TTS with voice loading fallback for British female
+// script.js - multilingual TTS with English + Chinese detection
 
 console.log("🟢 script.js loaded successfully");
 
@@ -7,6 +7,7 @@ const responseBox = document.getElementById("responseBox");
 const questionInput = document.getElementById("questionInput");
 const historyList = document.getElementById("historyList");
 const micBtn = document.getElementById("micBtn");
+
 const translationBox = document.createElement("div");
 translationBox.id = "chineseTranslation";
 translationBox.style.marginTop = "10px";
@@ -78,24 +79,42 @@ function addToHistory(question, answer) {
   historyList.prepend(li);
 }
 
-// 🔊 Speech synthesis with proper voice fallback
-let ukVoice;
-window.speechSynthesis.onvoiceschanged = () => {
+// 🧠 Detect language by character pattern
+function detectLang(text) {
+  return /[\u4e00-\u9fa5]/.test(text) ? "zh-CN" : "en-GB";
+}
+
+// 🔈 Find voice for English or Chinese
+function getVoiceForLang(lang) {
   const voices = speechSynthesis.getVoices();
-  ukVoice = voices.find(v => v.name.includes("Google UK English Female")) ||
-            voices.find(v => v.lang === "en-GB") ||
-            voices[0];
-};
+  if (lang === "zh-CN") {
+    return voices.find(v => v.lang === "zh-CN") || voices.find(v => v.name.includes("Google 普通话 女声"));
+  } else {
+    return voices.find(v => v.lang === "en-GB") || voices.find(v => v.name.includes("Google UK English Female"));
+  }
+}
 
+// 🔊 Speak each segment in its correct language
+function speakMixed(text) {
+  const segments = text.split(/(?<=[。.!?])/);
+  segments.forEach(segment => {
+    const trimmed = segment.trim();
+    if (trimmed) {
+      const lang = detectLang(trimmed);
+      const utter = new SpeechSynthesisUtterance(trimmed);
+      utter.lang = lang;
+      utter.voice = getVoiceForLang(lang);
+      utter.rate = 1;
+      speechSynthesis.speak(utter);
+    }
+  });
+}
+
+// ✅ Main TTS function with multilingual playback
 function playTTS() {
-  const englishText = responseBox.textContent.trim();
-  if (!englishText) return;
-
-  const utterance = new SpeechSynthesisUtterance(englishText);
-  utterance.voice = ukVoice || speechSynthesis.getVoices()[0];
-  utterance.lang = "en-GB";
-  utterance.rate = 1;
-  speechSynthesis.speak(utterance);
+  const english = responseBox.textContent.trim();
+  const chinese = translationBox.textContent.replace(/^🇨🇳 中文翻译：/, "").trim();
+  speakMixed(`${english} ${chinese}`);
 }
 
 document.getElementById("ttsBtn")?.addEventListener("click", playTTS);
@@ -140,4 +159,5 @@ if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   };
 }
 
+// 🔄 Make function global
 window.submitQuestion = submitQuestion;
