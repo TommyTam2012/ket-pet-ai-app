@@ -1,4 +1,4 @@
-// script.js - now includes microphone input for speech-to-text
+// script.js - updated mic to 'hold to speak, release to send'
 
 console.log("🟢 script.js loaded successfully");
 
@@ -96,7 +96,7 @@ function playTTS() {
 
 document.getElementById("ttsBtn")?.addEventListener("click", playTTS);
 
-// 🎤 Microphone input setup
+// 🎤 Hold-to-speak microphone
 if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
@@ -104,8 +104,24 @@ if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   recognition.continuous = false;
   recognition.interimResults = false;
 
-  micBtn.addEventListener("click", () => {
+  micBtn.addEventListener("mousedown", () => {
     recognition.start();
+    micBtn.textContent = "🎤 正在录音... (松开发送)";
+  });
+
+  micBtn.addEventListener("mouseup", () => {
+    recognition.stop();
+    micBtn.textContent = "🎤 语音提问";
+  });
+
+  micBtn.addEventListener("touchstart", () => {
+    recognition.start();
+    micBtn.textContent = "🎤 正在录音... (松开发送)";
+  });
+
+  micBtn.addEventListener("touchend", () => {
+    recognition.stop();
+    micBtn.textContent = "🎤 语音提问";
   });
 
   recognition.onresult = (event) => {
