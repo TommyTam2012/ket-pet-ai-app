@@ -24,6 +24,7 @@
       text-decoration: none;
       display: inline-block;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
     }
     .exam-btn:hover {
       background: #0055aa;
@@ -51,10 +52,10 @@
     <section class="selectors">
       <h2>选择考试：</h2>
       <div class="exam-grid">
-        <!-- ✅ Keep this KET link unchanged -->
-        <a class="exam-btn" href="/exams/KET/ket01.pdf" target="_blank">📄 KET Test 1</a>
-        <!-- ✅ New PET link added below -->
-        <a class="exam-btn" href="/exams/pet/pet01.pdf" target="_blank">📄 PET Test 1</a>
+        <!-- ✅ KET Button (unchanged functionality, now JS-controlled) -->
+        <div class="exam-btn" onclick="setExam('ket01')">📄 KET Test 1</div>
+        <!-- ✅ PET Button (JS-controlled) -->
+        <div class="exam-btn" onclick="setExam('pet01')">📄 PET Test 1</div>
       </div>
     </section>
 
