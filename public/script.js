@@ -1,4 +1,4 @@
-// script.js - multilingual TTS with English + Chinese detection
+// script.js - multilingual TTS, PET/KET detection, voice input
 
 console.log("🟢 script.js loaded successfully");
 
@@ -15,8 +15,8 @@ translationBox.style.fontSize = "0.95em";
 translationBox.style.color = "#333";
 responseBox.insertAdjacentElement("afterend", translationBox);
 
-let currentExamId = "ket01";
-let currentExamPdf = "ket01.pdf";
+// Default exam (can toggle later)
+let currentExamId = "ket01"; // or "pet01"
 
 function submitQuestion() {
   console.log("🔥 submitQuestion triggered!");
@@ -30,12 +30,13 @@ function submitQuestion() {
   responseBox.textContent = "正在分析，请稍候...";
   translationBox.textContent = "";
 
+  const examFolder = currentExamId.startsWith("pet") ? "pet" : "KET";
   const imageMessages = [
     { type: "text", text: question }
   ];
 
   for (let i = 1; i <= 13; i++) {
-    const imageUrl = `/exams/KET/${currentExamId}_page${i}.png`;
+    const imageUrl = `/exams/${examFolder}/${currentExamId}_page${i}.png`;
     imageMessages.push({
       type: "image_url",
       image_url: { url: window.location.origin + imageUrl }
@@ -79,12 +80,11 @@ function addToHistory(question, answer) {
   historyList.prepend(li);
 }
 
-// 🧠 Detect language by character pattern
+// 🧠 Language detection for TTS
 function detectLang(text) {
   return /[\u4e00-\u9fa5]/.test(text) ? "zh-CN" : "en-GB";
 }
 
-// 🔈 Find voice for English or Chinese
 function getVoiceForLang(lang) {
   const voices = speechSynthesis.getVoices();
   if (lang === "zh-CN") {
@@ -94,7 +94,6 @@ function getVoiceForLang(lang) {
   }
 }
 
-// 🔊 Speak each segment in its correct language
 function speakMixed(text) {
   const segments = text.split(/(?<=[。.!?])/);
   segments.forEach(segment => {
@@ -110,7 +109,7 @@ function speakMixed(text) {
   });
 }
 
-// ✅ Main TTS function with multilingual playback
+// 🔊 Unified TTS button
 function playTTS() {
   const english = responseBox.textContent.trim();
   const chinese = translationBox.textContent.replace(/^🇨🇳 中文翻译：/, "").trim();
@@ -119,11 +118,11 @@ function playTTS() {
 
 document.getElementById("ttsBtn")?.addEventListener("click", playTTS);
 
-// 🎤 Hold-to-speak microphone
+// 🎤 Hold-to-speak mic input
 if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
-  recognition.lang = "zh-CN"; // or "en-US" depending on the student
+  recognition.lang = "zh-CN"; // adjust if needed
   recognition.continuous = false;
   recognition.interimResults = false;
 
@@ -159,5 +158,5 @@ if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   };
 }
 
-// 🔄 Make function global
+// 🌍 Expose for manual trigger
 window.submitQuestion = submitQuestion;
