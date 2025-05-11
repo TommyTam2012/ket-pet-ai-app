@@ -1,4 +1,4 @@
-// script.js - updated mic to 'hold to speak, release to send'
+// script.js - improved TTS with voice loading fallback for British female
 
 console.log("🟢 script.js loaded successfully");
 
@@ -78,17 +78,21 @@ function addToHistory(question, answer) {
   historyList.prepend(li);
 }
 
+// 🔊 Speech synthesis with proper voice fallback
+let ukVoice;
+window.speechSynthesis.onvoiceschanged = () => {
+  const voices = speechSynthesis.getVoices();
+  ukVoice = voices.find(v => v.name.includes("Google UK English Female")) ||
+            voices.find(v => v.lang === "en-GB") ||
+            voices[0];
+};
+
 function playTTS() {
   const englishText = responseBox.textContent.trim();
   if (!englishText) return;
 
-  const voices = speechSynthesis.getVoices();
-  let ukFemale = voices.find(v => v.name.includes("Google UK English Female"));
-  if (!ukFemale) ukFemale = voices.find(v => v.lang === "en-GB");
-  if (!ukFemale) ukFemale = voices[0];
-
   const utterance = new SpeechSynthesisUtterance(englishText);
-  utterance.voice = ukFemale;
+  utterance.voice = ukVoice || speechSynthesis.getVoices()[0];
   utterance.lang = "en-GB";
   utterance.rate = 1;
   speechSynthesis.speak(utterance);
