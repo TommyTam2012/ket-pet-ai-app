@@ -14,6 +14,23 @@ responseBox.insertAdjacentElement("afterend", translationBox);
 
 let currentExamId = "ket01";
 
+// ✅ Answer Key (starting with ket01)
+const answerKey = {
+  ket01: {
+    1: "H", 2: "C", 3: "G", 4: "D", 5: "A",
+    6: "B", 7: "A", 8: "B", 9: "C", 10: "C",
+    11: "C", 12: "B", 13: "C", 14: "A", 15: "C",
+    16: "F", 17: "B", 18: "D", 19: "A", 20: "H",
+    21: "A", 22: "C", 23: "A", 24: "B", 25: "A",
+    26: "A", 27: "B", 28: "B", 29: "C", 30: "B",
+    31: "B", 32: "A", 33: "C", 34: "A", 35: "C",
+    36: "stadium", 37: "camera", 38: "beach", 39: "guitar", 40: "tent",
+    41: "have", 42: "them", 43: "than", 44: "the", 45: "last",
+    46: "this", 47: "with", 48: "go", 49: "ago", 50: "each",
+    51: "Saturday", 52: "1.30", 53: "sweater", 54: "car", 55: "366387"
+  }
+};
+
 function setExam(examId) {
   currentExamId = examId;
   const folder = examId.startsWith("pet") ? "pet" : "KET";
@@ -38,7 +55,7 @@ function submitQuestion() {
   const level = currentExamId.startsWith("pet") ? "PET" : "KET";
 
   const examPageCount = {
-    ket01: 13,
+    ket01: 55,
     ket02: 10,
     pet01: 13,
     pet02: 13
@@ -46,15 +63,27 @@ function submitQuestion() {
 
   const totalPages = examPageCount[currentExamId] || 13;
 
-  const instruction = `
+  // 🔍 Extract question number (e.g., Q3, Question 3, 问题 3)
+  const match = question.match(/(?:Q|Question|问题)\s*(\d+)/i);
+  const questionNumber = match ? parseInt(match[1]) : null;
+  const officialAnswer = answerKey[currentExamId]?.[questionNumber];
+
+  // 🧠 Instruction for GPT
+  let instruction = `
 You are an English teacher helping a student prepare for the ${level} exam, working on ${currentExamId.toUpperCase()}.
 
 1. If the student pastes a short writing task (like an email or story), do NOT repeat the exam instructions. Instead, directly correct their writing: fix grammar, spelling, and structure. Then give 2–3 suggestions for improvement at the ${level} level.
 
 2. If the student asks about a specific exam question (e.g., "Q3", "Question 3", or "问题 3"), use the provided exam images for ${currentExamId.toUpperCase()}. Find the correct question and give a direct answer. You must prioritize identifying and answering anything that includes "Q", "Question", or "问题" followed by a number.
 
-Do not summarize instructions unless the student asks. Always respond with either writing feedback or the correct answer to the question mentioned.
 `;
+
+  if (officialAnswer && questionNumber) {
+    instruction += `
+The official answer for Question ${questionNumber} is: ${officialAnswer}.
+Please confirm this by checking the exam image and then briefly explain why this answer is correct. If the image shows something different, explain your reasoning clearly.
+`;
+  }
 
   const imageMessages = [
     { type: "text", text: instruction },
@@ -121,7 +150,6 @@ function getVoiceForLang(lang) {
 
 function speakMixed(text) {
   const segments = text.split(/(?<=[。.!?])/).map(s => s.trim()).filter(Boolean);
-  const voices = speechSynthesis.getVoices();
   let index = 0;
 
   function speakNext() {
