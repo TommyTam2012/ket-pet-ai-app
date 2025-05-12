@@ -46,7 +46,15 @@ function submitQuestion() {
 
   const totalPages = examPageCount[currentExamId] || 13;
 
-  const instruction = `The student is preparing for the ${level} exam. If the question is a pasted writing task, please correct grammar and vocabulary errors, provide suggestions, and explain the changes based on ${level} writing level.`;
+  const instruction = `
+You are an English teacher helping a student prepare for the ${level} exam, working on ${currentExamId.toUpperCase()}.
+
+1. If the student pastes a short writing task (like an email or story), do NOT repeat the exam instructions. Instead, directly correct their writing: fix grammar, spelling, and structure. Then give 2–3 suggestions for improvement at the ${level} level.
+
+2. If the student asks about a specific exam question (e.g., "Q3", "Question 3", or "问题 3"), use the provided exam images for ${currentExamId.toUpperCase()}. Find the correct question and give a direct answer. You must prioritize identifying and answering anything that includes "Q", "Question", or "问题" followed by a number.
+
+Do not summarize instructions unless the student asks. Always respond with either writing feedback or the correct answer to the question mentioned.
+`;
 
   const imageMessages = [
     { type: "text", text: instruction },
@@ -98,7 +106,6 @@ function addToHistory(question, answer) {
   historyList.prepend(li);
 }
 
-// 🧠 Language Detection
 function detectLang(text) {
   return /[\u4e00-\u9fa5]/.test(text) ? "zh-CN" : "en-GB";
 }
@@ -112,7 +119,6 @@ function getVoiceForLang(lang) {
   }
 }
 
-// ✅ Fixed: Sequential TTS with onend chaining
 function speakMixed(text) {
   const segments = text.split(/(?<=[。.!?])/).map(s => s.trim()).filter(Boolean);
   const voices = speechSynthesis.getVoices();
@@ -130,7 +136,7 @@ function speakMixed(text) {
     speechSynthesis.speak(utter);
   }
 
-  speechSynthesis.cancel(); // clear queue before starting
+  speechSynthesis.cancel();
   speakNext();
 }
 
@@ -147,7 +153,6 @@ document.getElementById("stopTTSBtn")?.addEventListener("click", () => {
   console.log("🛑 TTS playback stopped");
 });
 
-// 🎤 Voice Input
 if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
@@ -187,6 +192,5 @@ if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   };
 }
 
-// 🌍 Expose for HTML buttons
 window.submitQuestion = submitQuestion;
 window.setExam = setExam;
