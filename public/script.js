@@ -14,7 +14,7 @@ responseBox.insertAdjacentElement("afterend", translationBox);
 
 let currentExamId = "ket01";
 
-// ✅ Answer Key (starting with ket01)
+// ✅ Full answerKey
 const answerKey = {
   ket01: {
     1: "H", 2: "C", 3: "G", 4: "D", 5: "A",
@@ -29,7 +29,6 @@ const answerKey = {
     46: "this", 47: "with", 48: "go", 49: "ago", 50: "each",
     51: "Saturday", 52: "1.30", 53: "sweater", 54: "car", 55: "366387"
   },
-
   ket02: {
     1: "C", 2: "A", 3: "C", 4: "A", 5: "B", 6: "B",
     7: "B", 8: "A", 9: "C", 10: "A", 11: "B", 12: "A", 13: "B",
@@ -37,7 +36,6 @@ const answerKey = {
     19: "C", 20: "C", 21: "B", 22: "A", 23: "B", 24: "C",
     25: "up", 26: "At", 27: "it", 28: "for", 29: "the", 30: "if"
   },
-
   pet01: {
     1: "C", 2: "B", 3: "A", 4: "B", 5: "B",
     6: "D", 7: "F", 8: "C", 9: "A", 10: "H",
@@ -47,7 +45,6 @@ const answerKey = {
     26: "B", 27: "D", 28: "C", 29: "C", 30: "B",
     31: "D", 32: "C", 33: "B", 34: "C", 35: "A"
   },
-
   pet02: {
     1: "A", 2: "C", 3: "A", 4: "C", 5: "A",
     6: "H", 7: "E", 8: "G", 9: "C", 10: "D",
@@ -81,29 +78,27 @@ function submitQuestion() {
 
   const examFolder = currentExamId.startsWith("pet") ? "pet" : "KET";
   const level = currentExamId.startsWith("pet") ? "PET" : "KET";
+  const examTestName = `${level} Test ${currentExamId.slice(-1)}`;
 
   const examPageCount = {
     ket01: 55,
-    ket02: 10,
-    pet01: 13,
-    pet02: 13
+    ket02: 30,
+    pet01: 35,
+    pet02: 35
   };
 
   const totalPages = examPageCount[currentExamId] || 13;
 
-  // 🔍 Extract question number (e.g., Q3, Question 3, 问题 3)
   const match = question.match(/(?:Q|Question|问题)\s*(\d+)/i);
   const questionNumber = match ? parseInt(match[1]) : null;
   const officialAnswer = answerKey[currentExamId]?.[questionNumber];
 
-  // 🧠 Instruction for GPT
   let instruction = `
-You are an English teacher helping a student prepare for the ${level} exam, working on ${currentExamId.toUpperCase()}.
+You are an English teacher helping a student prepare for the ${level} exam. The student has selected ${examTestName}.
 
 1. If the student pastes a short writing task (like an email or story), do NOT repeat the exam instructions. Instead, directly correct their writing: fix grammar, spelling, and structure. Then give 2–3 suggestions for improvement at the ${level} level.
 
-2. If the student asks about a specific exam question (e.g., "Q3", "Question 3", or "问题 3"), use the provided exam images for ${currentExamId.toUpperCase()}. Find the correct question and give a direct answer. You must prioritize identifying and answering anything that includes "Q", "Question", or "问题" followed by a number.
-
+2. If the student asks about a specific exam question (e.g., "Q3", "Question 3", or "问题 3"), use the provided exam images. Find the correct question and give a direct answer. Prioritize anything that includes "Q", "Question", or "问题" followed by a number.
 `;
 
   if (officialAnswer && questionNumber) {
@@ -126,6 +121,13 @@ Please confirm this by checking the exam image and then briefly explain why this
     });
   }
 
+  console.log("📤 Sending GPT prompt:", {
+    exam: currentExamId,
+    question,
+    instruction,
+    imageCount: totalPages
+  });
+
   fetch("/api/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -133,11 +135,18 @@ Please confirm this by checking the exam image and then briefly explain why this
   })
     .then(async res => {
       const text = await res.text();
+      console.log("📦 Raw GPT response text:", text);
+
       try {
-        return JSON.parse(text);
+        const parsed = JSON.parse(text);
+        console.log("✅ Parsed GPT JSON:", parsed);
+        return parsed;
       } catch (err) {
-        console.error("❌ Server returned non-JSON:", text);
-        throw new Error("服务器返回非 JSON 内容");
+        console.error("❌ Failed to parse GPT response:", err);
+        return {
+          response: "[⚠️ 无法解析 GPT 返回结果]",
+          translated: "[⚠️ 无法获取翻译]"
+        };
       }
     })
     .then(data => {
@@ -169,11 +178,9 @@ function detectLang(text) {
 
 function getVoiceForLang(lang) {
   const voices = speechSynthesis.getVoices();
-  if (lang === "zh-CN") {
-    return voices.find(v => v.lang === "zh-CN") || voices.find(v => v.name.includes("Google 普通话 女声"));
-  } else {
-    return voices.find(v => v.lang === "en-GB") || voices.find(v => v.name.includes("Google UK English Female"));
-  }
+  return lang === "zh-CN"
+    ? voices.find(v => v.lang === "zh-CN") || voices.find(v => v.name.includes("Google 普通话 女声"))
+    : voices.find(v => v.lang === "en-GB") || voices.find(v => v.name.includes("Google UK English Female"));
 }
 
 function speakMixed(text) {
@@ -203,7 +210,6 @@ function playTTS() {
 }
 
 document.getElementById("ttsBtn")?.addEventListener("click", playTTS);
-
 document.getElementById("stopTTSBtn")?.addEventListener("click", () => {
   speechSynthesis.cancel();
   console.log("🛑 TTS playback stopped");
