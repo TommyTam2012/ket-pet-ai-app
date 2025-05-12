@@ -14,6 +14,7 @@ responseBox.insertAdjacentElement("afterend", translationBox);
 
 let currentExamId = "ket01";
 
+// ✅ Switch between KET/PET exams
 function setExam(examId) {
   currentExamId = examId;
   const folder = examId.startsWith("pet") ? "pet" : "KET";
@@ -92,6 +93,7 @@ function addToHistory(question, answer) {
   historyList.prepend(li);
 }
 
+// 🌐 TTS - detect English or Chinese
 function detectLang(text) {
   return /[\u4e00-\u9fa5]/.test(text) ? "zh-CN" : "en-GB";
 }
@@ -120,6 +122,7 @@ function speakMixed(text) {
   });
 }
 
+// 🔊 TTS button
 function playTTS() {
   const english = responseBox.textContent.trim();
   const chinese = translationBox.textContent.replace(/^🇨🇳 中文翻译：/, "").trim();
@@ -128,6 +131,13 @@ function playTTS() {
 
 document.getElementById("ttsBtn")?.addEventListener("click", playTTS);
 
+// 🛑 Stop speech button
+document.getElementById("stopTTSBtn")?.addEventListener("click", () => {
+  speechSynthesis.cancel();
+  console.log("🛑 TTS playback stopped");
+});
+
+// 🎤 Speech recognition input
 if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
@@ -167,5 +177,6 @@ if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   };
 }
 
+// 🌍 Export global functions
 window.submitQuestion = submitQuestion;
 window.setExam = setExam;
