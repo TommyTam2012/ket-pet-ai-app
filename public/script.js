@@ -12,7 +12,18 @@ translationBox.style.fontSize = "0.95em";
 translationBox.style.color = "#333";
 responseBox.insertAdjacentElement("afterend", translationBox);
 
+// ✅ Default test ID (updated dynamically by button clicks)
 let currentExamId = "ket01";
+
+// ✅ Answer key with explanation
+const answerKey = {
+  pet02: {
+    33: {
+      answer: "A",
+      explanation: "A is correct because the sentence uses 'already' to show a completed action."
+    }
+  }
+};
 
 function setExam(examId) {
   currentExamId = examId;
@@ -25,8 +36,8 @@ function setExam(examId) {
 function submitQuestion() {
   console.log("🔥 submitQuestion triggered!");
 
-  const question = questionInput.value.trim();
-  if (!question || !currentExamId) {
+  const userInput = questionInput.value.trim();
+  if (!userInput || !currentExamId) {
     alert("⚠️ 请先选择试卷并输入问题。");
     return;
   }
@@ -34,53 +45,51 @@ function submitQuestion() {
   responseBox.textContent = "正在分析，请稍候...";
   translationBox.textContent = "";
 
-  const examFolder = currentExamId.startsWith("pet") ? "pet" : "KET";
-  const level = currentExamId.startsWith("pet") ? "PET" : "KET";
+  // ✅ Normalize user phrasing like "PET Test 2"
+  let normalizedId = currentExamId;
+  if (/pet test 1/i.test(userInput)) normalizedId = "pet01";
+  if (/pet test 2/i.test(userInput)) normalizedId = "pet02";
+  if (/ket test 1/i.test(userInput)) normalizedId = "ket01";
+  if (/ket test 2/i.test(userInput)) normalizedId = "ket02";
 
-  const examPageCount = {
-    ket01: 13,
-    ket02: 10,
-    pet01: 13,
-    pet02: 13
-  };
+  const level = normalizedId.startsWith("pet") ? "PET" : "KET";
+  const examName = `${level} Test ${normalizedId.slice(-1)}`;
 
-  const totalPages = examPageCount[currentExamId] || 13;
+  // ✅ Extract Q number
+  const match = userInput.match(/(?:Q|Question|问题)\s*(\d+)/i);
+  const questionNumber = match ? parseInt(match[1]) : null;
+  const entry = answerKey[normalizedId]?.[questionNumber];
 
-  const instruction = `
-You are an English teacher helping a student prepare for the ${level} exam, working on ${currentExamId.toUpperCase()}.
+  let messages = [];
 
-1. If the student pastes a short writing task (like an email or story), do NOT repeat the exam instructions. Instead, directly correct their writing: fix grammar, spelling, and structure. Then give 2–3 suggestions for improvement at the ${level} level.
+  if (entry?.answer && entry?.explanation) {
+    const prompt = `
+The student is asking about ${examName}, Question ${questionNumber}.
+The correct answer is: ${entry.answer}
+Explanation: ${entry.explanation}
+Please explain the answer clearly and simply so the student can understand why this choice is correct.
+    `.trim();
 
-2. If the student asks about a specific exam question (e.g., "Q3", "Question 3", or "问题 3"), use the provided exam images for ${currentExamId.toUpperCase()}. Find the correct question and give a direct answer. You must prioritize identifying and answering anything that includes "Q", "Question", or "问题" followed by a number.
-
-Do not summarize instructions unless the student asks. Always respond with either writing feedback or the correct answer to the question mentioned.
-`;
-
-  const imageMessages = [
-    { type: "text", text: instruction },
-    { type: "text", text: question }
-  ];
-
-  for (let i = 1; i <= totalPages; i++) {
-    const imageUrl = `/exams/${examFolder}/${currentExamId}_page${i}.png`;
-    imageMessages.push({
-      type: "image_url",
-      image_url: { url: window.location.origin + imageUrl }
-    });
+    messages = [{ type: "text", text: prompt }];
+  } else {
+    messages = [{ type: "text", text: userInput }];
   }
 
   fetch("/api/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt: question, messages: imageMessages })
+    body: JSON.stringify({ prompt: userInput, messages })
   })
     .then(async res => {
       const text = await res.text();
       try {
         return JSON.parse(text);
       } catch (err) {
-        console.error("❌ Server returned non-JSON:", text);
-        throw new Error("服务器返回非 JSON 内容");
+        console.error("❌ GPT error:", err);
+        return {
+          response: "[⚠️ GPT 无法返回内容]",
+          translated: "[⚠️ 无法获取翻译]"
+        };
       }
     })
     .then(data => {
@@ -90,11 +99,11 @@ Do not summarize instructions unless the student asks. Always respond with eithe
       responseBox.textContent = answer;
       translationBox.textContent = `🇨🇳 中文翻译：${translated}`;
 
-      addToHistory(question, `${answer}<br><em>🇨🇳 中文翻译：</em>${translated}`);
+      addToHistory(userInput, `${answer}<br><em>🇨🇳 中文翻译：</em>${translated}`);
     })
     .catch(err => {
       responseBox.textContent = "发生错误，请稍后重试。";
-      console.error("❌ GPT error:", err);
+      console.error("❌ GPT request failed:", err);
     });
 
   questionInput.value = "";
@@ -112,16 +121,13 @@ function detectLang(text) {
 
 function getVoiceForLang(lang) {
   const voices = speechSynthesis.getVoices();
-  if (lang === "zh-CN") {
-    return voices.find(v => v.lang === "zh-CN") || voices.find(v => v.name.includes("Google 普通话 女声"));
-  } else {
-    return voices.find(v => v.lang === "en-GB") || voices.find(v => v.name.includes("Google UK English Female"));
-  }
+  return lang === "zh-CN"
+    ? voices.find(v => v.lang === "zh-CN") || voices.find(v => v.name.includes("Google 普通话 女声"))
+    : voices.find(v => v.lang === "en-GB") || voices.find(v => v.name.includes("Google UK English Female"));
 }
 
 function speakMixed(text) {
   const segments = text.split(/(?<=[。.!?])/).map(s => s.trim()).filter(Boolean);
-  const voices = speechSynthesis.getVoices();
   let index = 0;
 
   function speakNext() {
@@ -147,10 +153,9 @@ function playTTS() {
 }
 
 document.getElementById("ttsBtn")?.addEventListener("click", playTTS);
-
 document.getElementById("stopTTSBtn")?.addEventListener("click", () => {
   speechSynthesis.cancel();
-  console.log("🛑 TTS playback stopped");
+  console.log("🛑 TTS stopped");
 });
 
 if (window.SpeechRecognition || window.webkitSpeechRecognition) {
