@@ -14,17 +14,6 @@ responseBox.insertAdjacentElement("afterend", translationBox);
 
 let currentExamId = "ket01";
 
-// ✅ SIMPLIFIED answerKey with explanations
-const answerKey = {
-  ket01: {
-    1: { answer: "H", explanation: "H is correct because it matches the situation described in the question." },
-    2: { answer: "C", explanation: "C is correct because the form should be placed in the car window." },
-    3: { answer: "G", explanation: "G matches the changed transport notice in the prompt." },
-    4: { answer: "D", explanation: "D is correct because Sonja asked her mom to pick up both items." },
-    5: { answer: "A", explanation: "A explains that two hours is the recommended time clearly." }
-  }
-};
-
 function setExam(examId) {
   currentExamId = examId;
   const folder = examId.startsWith("pet") ? "pet" : "KET";
@@ -45,42 +34,53 @@ function submitQuestion() {
   responseBox.textContent = "正在分析，请稍候...";
   translationBox.textContent = "";
 
-  const match = question.match(/(?:Q|Question|问题)\s*(\d+)/i);
-  const questionNumber = match ? parseInt(match[1]) : null;
-  const answerData = answerKey[currentExamId]?.[questionNumber];
+  const examFolder = currentExamId.startsWith("pet") ? "pet" : "KET";
+  const level = currentExamId.startsWith("pet") ? "PET" : "KET";
 
-  let messages = [];
+  const examPageCount = {
+    ket01: 13,
+    ket02: 10,
+    pet01: 13,
+    pet02: 13
+  };
 
-  if (answerData && answerData.answer && answerData.explanation) {
-    // ✅ Use hardcoded answer + explanation, skip Vision
-    const shortPrompt = `
-The student is asking about Question ${questionNumber} from ${currentExamId.toUpperCase()}.
-The correct answer is: ${answerData.answer}
-Explanation: ${answerData.explanation}
-Please explain this to the student in simple English, and help them understand why this answer is correct.
-    `.trim();
+  const totalPages = examPageCount[currentExamId] || 13;
 
-    messages = [{ type: "text", text: shortPrompt }];
-  } else {
-    // ❗ Default fallback if no answer available
-    messages = [{ type: "text", text: question }];
+  const instruction = `
+You are an English teacher helping a student prepare for the ${level} exam, working on ${currentExamId.toUpperCase()}.
+
+1. If the student pastes a short writing task (like an email or story), do NOT repeat the exam instructions. Instead, directly correct their writing: fix grammar, spelling, and structure. Then give 2–3 suggestions for improvement at the ${level} level.
+
+2. If the student asks about a specific exam question (e.g., "Q3", "Question 3", or "问题 3"), use the provided exam images for ${currentExamId.toUpperCase()}. Find the correct question and give a direct answer. You must prioritize identifying and answering anything that includes "Q", "Question", or "问题" followed by a number.
+
+Do not summarize instructions unless the student asks. Always respond with either writing feedback or the correct answer to the question mentioned.
+`;
+
+  const imageMessages = [
+    { type: "text", text: instruction },
+    { type: "text", text: question }
+  ];
+
+  for (let i = 1; i <= totalPages; i++) {
+    const imageUrl = `/exams/${examFolder}/${currentExamId}_page${i}.png`;
+    imageMessages.push({
+      type: "image_url",
+      image_url: { url: window.location.origin + imageUrl }
+    });
   }
 
   fetch("/api/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt: question, messages })
+    body: JSON.stringify({ prompt: question, messages: imageMessages })
   })
     .then(async res => {
       const text = await res.text();
       try {
         return JSON.parse(text);
       } catch (err) {
-        console.error("❌ GPT error:", err);
-        return {
-          response: "[⚠️ GPT 无法返回内容]",
-          translated: "[⚠️ 无法翻译内容]"
-        };
+        console.error("❌ Server returned non-JSON:", text);
+        throw new Error("服务器返回非 JSON 内容");
       }
     })
     .then(data => {
@@ -94,7 +94,7 @@ Please explain this to the student in simple English, and help them understand w
     })
     .catch(err => {
       responseBox.textContent = "发生错误，请稍后重试。";
-      console.error("❌ GPT request failed:", err);
+      console.error("❌ GPT error:", err);
     });
 
   questionInput.value = "";
@@ -112,13 +112,16 @@ function detectLang(text) {
 
 function getVoiceForLang(lang) {
   const voices = speechSynthesis.getVoices();
-  return lang === "zh-CN"
-    ? voices.find(v => v.lang === "zh-CN") || voices.find(v => v.name.includes("Google 普通话 女声"))
-    : voices.find(v => v.lang === "en-GB") || voices.find(v => v.name.includes("Google UK English Female"));
+  if (lang === "zh-CN") {
+    return voices.find(v => v.lang === "zh-CN") || voices.find(v => v.name.includes("Google 普通话 女声"));
+  } else {
+    return voices.find(v => v.lang === "en-GB") || voices.find(v => v.name.includes("Google UK English Female"));
+  }
 }
 
 function speakMixed(text) {
   const segments = text.split(/(?<=[。.!?])/).map(s => s.trim()).filter(Boolean);
+  const voices = speechSynthesis.getVoices();
   let index = 0;
 
   function speakNext() {
@@ -144,9 +147,10 @@ function playTTS() {
 }
 
 document.getElementById("ttsBtn")?.addEventListener("click", playTTS);
+
 document.getElementById("stopTTSBtn")?.addEventListener("click", () => {
   speechSynthesis.cancel();
-  console.log("🛑 TTS stopped");
+  console.log("🛑 TTS playback stopped");
 });
 
 if (window.SpeechRecognition || window.webkitSpeechRecognition) {
