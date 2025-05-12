@@ -12,15 +12,14 @@ translationBox.style.fontSize = "0.95em";
 translationBox.style.color = "#333";
 responseBox.insertAdjacentElement("afterend", translationBox);
 
-// ✅ Default test ID (updated dynamically by button clicks)
 let currentExamId = "ket01";
 
-// ✅ Answer key with explanation
+// ✅ Hardcoded answer with explanation
 const answerKey = {
-  pet02: {
+  pet01: {
     33: {
-      answer: "A",
-      explanation: "A is correct because the sentence uses 'already' to show a completed action."
+      answer: "B",
+      explanation: "B is correct because it logically completes the sentence in the reading cloze task."
     }
   }
 };
@@ -34,8 +33,6 @@ function setExam(examId) {
 }
 
 function submitQuestion() {
-  console.log("🔥 submitQuestion triggered!");
-
   const userInput = questionInput.value.trim();
   if (!userInput || !currentExamId) {
     alert("⚠️ 请先选择试卷并输入问题。");
@@ -45,7 +42,7 @@ function submitQuestion() {
   responseBox.textContent = "正在分析，请稍候...";
   translationBox.textContent = "";
 
-  // ✅ Normalize user phrasing like "PET Test 2"
+  // Normalize test name
   let normalizedId = currentExamId;
   if (/pet test 1/i.test(userInput)) normalizedId = "pet01";
   if (/pet test 2/i.test(userInput)) normalizedId = "pet02";
@@ -55,7 +52,6 @@ function submitQuestion() {
   const level = normalizedId.startsWith("pet") ? "PET" : "KET";
   const examName = `${level} Test ${normalizedId.slice(-1)}`;
 
-  // ✅ Extract Q number
   const match = userInput.match(/(?:Q|Question|问题)\s*(\d+)/i);
   const questionNumber = match ? parseInt(match[1]) : null;
   const entry = answerKey[normalizedId]?.[questionNumber];
@@ -63,16 +59,24 @@ function submitQuestion() {
   let messages = [];
 
   if (entry?.answer && entry?.explanation) {
-    const prompt = `
+    messages = [{
+      type: "text",
+      text: `
 The student is asking about ${examName}, Question ${questionNumber}.
 The correct answer is: ${entry.answer}
 Explanation: ${entry.explanation}
-Please explain the answer clearly and simply so the student can understand why this choice is correct.
-    `.trim();
-
-    messages = [{ type: "text", text: prompt }];
+Please explain this answer to the student in simple English so they understand why it is correct.
+`.trim()
+    }];
   } else {
-    messages = [{ type: "text", text: userInput }];
+    messages = [{
+      type: "text",
+      text: `
+The student said: "${userInput}"
+They may be asking about a question from the ${examName}.
+If possible, please try to help them by analyzing what they need.
+`.trim()
+    }];
   }
 
   fetch("/api/analyze", {
