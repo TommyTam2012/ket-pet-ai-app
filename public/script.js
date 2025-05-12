@@ -14,7 +14,6 @@ responseBox.insertAdjacentElement("afterend", translationBox);
 
 let currentExamId = "ket01";
 
-// ✅ Switch between KET/PET exams
 function setExam(examId) {
   currentExamId = examId;
   const folder = examId.startsWith("pet") ? "pet" : "KET";
@@ -36,6 +35,7 @@ function submitQuestion() {
   translationBox.textContent = "";
 
   const examFolder = currentExamId.startsWith("pet") ? "pet" : "KET";
+  const level = currentExamId.startsWith("pet") ? "PET" : "KET";
 
   const examPageCount = {
     ket01: 13,
@@ -46,7 +46,12 @@ function submitQuestion() {
 
   const totalPages = examPageCount[currentExamId] || 13;
 
-  const imageMessages = [{ type: "text", text: question }];
+  const instruction = `The student is preparing for the ${level} exam. If the question is a pasted writing task, please correct grammar and vocabulary errors, provide suggestions, and explain the changes based on ${level} writing level.`;
+
+  const imageMessages = [
+    { type: "text", text: instruction },
+    { type: "text", text: question }
+  ];
 
   for (let i = 1; i <= totalPages; i++) {
     const imageUrl = `/exams/${examFolder}/${currentExamId}_page${i}.png`;
@@ -93,7 +98,7 @@ function addToHistory(question, answer) {
   historyList.prepend(li);
 }
 
-// 🌐 TTS - detect English or Chinese
+// 🧠 Language Detection
 function detectLang(text) {
   return /[\u4e00-\u9fa5]/.test(text) ? "zh-CN" : "en-GB";
 }
@@ -107,22 +112,28 @@ function getVoiceForLang(lang) {
   }
 }
 
+// ✅ Fixed: Sequential TTS with onend chaining
 function speakMixed(text) {
-  const segments = text.split(/(?<=[。.!?])/);
-  segments.forEach(segment => {
-    const trimmed = segment.trim();
-    if (trimmed) {
-      const lang = detectLang(trimmed);
-      const utter = new SpeechSynthesisUtterance(trimmed);
-      utter.lang = lang;
-      utter.voice = getVoiceForLang(lang);
-      utter.rate = 1;
-      speechSynthesis.speak(utter);
-    }
-  });
+  const segments = text.split(/(?<=[。.!?])/).map(s => s.trim()).filter(Boolean);
+  const voices = speechSynthesis.getVoices();
+  let index = 0;
+
+  function speakNext() {
+    if (index >= segments.length) return;
+    const segment = segments[index++];
+    const lang = detectLang(segment);
+    const utter = new SpeechSynthesisUtterance(segment);
+    utter.lang = lang;
+    utter.voice = getVoiceForLang(lang);
+    utter.rate = 1;
+    utter.onend = speakNext;
+    speechSynthesis.speak(utter);
+  }
+
+  speechSynthesis.cancel(); // clear queue before starting
+  speakNext();
 }
 
-// 🔊 TTS button
 function playTTS() {
   const english = responseBox.textContent.trim();
   const chinese = translationBox.textContent.replace(/^🇨🇳 中文翻译：/, "").trim();
@@ -131,13 +142,12 @@ function playTTS() {
 
 document.getElementById("ttsBtn")?.addEventListener("click", playTTS);
 
-// 🛑 Stop speech button
 document.getElementById("stopTTSBtn")?.addEventListener("click", () => {
   speechSynthesis.cancel();
   console.log("🛑 TTS playback stopped");
 });
 
-// 🎤 Speech recognition input
+// 🎤 Voice Input
 if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
@@ -177,6 +187,6 @@ if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   };
 }
 
-// 🌍 Export global functions
+// 🌍 Expose for HTML buttons
 window.submitQuestion = submitQuestion;
 window.setExam = setExam;
