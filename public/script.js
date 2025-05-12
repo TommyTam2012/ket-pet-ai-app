@@ -14,45 +14,14 @@ responseBox.insertAdjacentElement("afterend", translationBox);
 
 let currentExamId = "ket01";
 
-// ✅ Full answerKey
+// ✅ SIMPLIFIED answerKey with explanations
 const answerKey = {
   ket01: {
-    1: "H", 2: "C", 3: "G", 4: "D", 5: "A",
-    6: "B", 7: "A", 8: "B", 9: "C", 10: "C",
-    11: "C", 12: "B", 13: "C", 14: "A", 15: "C",
-    16: "F", 17: "B", 18: "D", 19: "A", 20: "H",
-    21: "A", 22: "C", 23: "A", 24: "B", 25: "A",
-    26: "A", 27: "B", 28: "B", 29: "C", 30: "B",
-    31: "B", 32: "A", 33: "C", 34: "A", 35: "C",
-    36: "stadium", 37: "camera", 38: "beach", 39: "guitar", 40: "tent",
-    41: "have", 42: "them", 43: "than", 44: "the", 45: "last",
-    46: "this", 47: "with", 48: "go", 49: "ago", 50: "each",
-    51: "Saturday", 52: "1.30", 53: "sweater", 54: "car", 55: "366387"
-  },
-  ket02: {
-    1: "C", 2: "A", 3: "C", 4: "A", 5: "B", 6: "B",
-    7: "B", 8: "A", 9: "C", 10: "A", 11: "B", 12: "A", 13: "B",
-    14: "B", 15: "C", 16: "C", 17: "B", 18: "C",
-    19: "C", 20: "C", 21: "B", 22: "A", 23: "B", 24: "C",
-    25: "up", 26: "At", 27: "it", 28: "for", 29: "the", 30: "if"
-  },
-  pet01: {
-    1: "C", 2: "B", 3: "A", 4: "B", 5: "B",
-    6: "D", 7: "F", 8: "C", 9: "A", 10: "H",
-    11: "A", 12: "A", 13: "B", 14: "B", 15: "A",
-    16: "A", 17: "A", 18: "A", 19: "B", 20: "B",
-    21: "C", 22: "D", 23: "D", 24: "B", 25: "D",
-    26: "B", 27: "D", 28: "C", 29: "C", 30: "B",
-    31: "D", 32: "C", 33: "B", 34: "C", 35: "A"
-  },
-  pet02: {
-    1: "A", 2: "C", 3: "A", 4: "C", 5: "A",
-    6: "H", 7: "E", 8: "G", 9: "C", 10: "D",
-    11: "A", 12: "A", 13: "A", 14: "B", 15: "A",
-    16: "A", 17: "A", 18: "B", 19: "A", 20: "B",
-    21: "A", 22: "D", 23: "C", 24: "D", 25: "B",
-    26: "B", 27: "D", 28: "A", 29: "A", 30: "B",
-    31: "D", 32: "C", 33: "A", 34: "D", 35: "A"
+    1: { answer: "H", explanation: "H is correct because it matches the situation described in the question." },
+    2: { answer: "C", explanation: "C is correct because the form should be placed in the car window." },
+    3: { answer: "G", explanation: "G matches the changed transport notice in the prompt." },
+    4: { answer: "D", explanation: "D is correct because Sonja asked her mom to pick up both items." },
+    5: { answer: "A", explanation: "A explains that two hours is the recommended time clearly." }
   }
 };
 
@@ -76,76 +45,41 @@ function submitQuestion() {
   responseBox.textContent = "正在分析，请稍候...";
   translationBox.textContent = "";
 
-  const examFolder = currentExamId.startsWith("pet") ? "pet" : "KET";
-  const level = currentExamId.startsWith("pet") ? "PET" : "KET";
-  const examTestName = `${level} Test ${currentExamId.slice(-1)}`;
-
-  const examPageCount = {
-    ket01: 55,
-    ket02: 30,
-    pet01: 35,
-    pet02: 35
-  };
-
-  const totalPages = examPageCount[currentExamId] || 13;
-
   const match = question.match(/(?:Q|Question|问题)\s*(\d+)/i);
   const questionNumber = match ? parseInt(match[1]) : null;
-  const officialAnswer = answerKey[currentExamId]?.[questionNumber];
+  const answerData = answerKey[currentExamId]?.[questionNumber];
 
-  let instruction = `
-You are an English teacher helping a student prepare for the ${level} exam. The student has selected ${examTestName}.
+  let messages = [];
 
-1. If the student pastes a short writing task (like an email or story), do NOT repeat the exam instructions. Instead, directly correct their writing: fix grammar, spelling, and structure. Then give 2–3 suggestions for improvement at the ${level} level.
+  if (answerData && answerData.answer && answerData.explanation) {
+    // ✅ Use hardcoded answer + explanation, skip Vision
+    const shortPrompt = `
+The student is asking about Question ${questionNumber} from ${currentExamId.toUpperCase()}.
+The correct answer is: ${answerData.answer}
+Explanation: ${answerData.explanation}
+Please explain this to the student in simple English, and help them understand why this answer is correct.
+    `.trim();
 
-2. If the student asks about a specific exam question (e.g., "Q3", "Question 3", or "问题 3"), use the provided exam images. Find the correct question and give a direct answer. Prioritize anything that includes "Q", "Question", or "问题" followed by a number.
-`;
-
-  if (officialAnswer && questionNumber) {
-    instruction += `
-The official answer for Question ${questionNumber} is: ${officialAnswer}.
-Please confirm this by checking the exam image and then briefly explain why this answer is correct. If the image shows something different, explain your reasoning clearly.
-`;
+    messages = [{ type: "text", text: shortPrompt }];
+  } else {
+    // ❗ Default fallback if no answer available
+    messages = [{ type: "text", text: question }];
   }
-
-  const imageMessages = [
-    { type: "text", text: instruction },
-    { type: "text", text: question }
-  ];
-
-  for (let i = 1; i <= totalPages; i++) {
-    const imageUrl = `/exams/${examFolder}/${currentExamId}_page${i}.png`;
-    imageMessages.push({
-      type: "image_url",
-      image_url: { url: window.location.origin + imageUrl }
-    });
-  }
-
-  console.log("📤 Sending GPT prompt:", {
-    exam: currentExamId,
-    question,
-    instruction,
-    imageCount: totalPages
-  });
 
   fetch("/api/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt: question, messages: imageMessages })
+    body: JSON.stringify({ prompt: question, messages })
   })
     .then(async res => {
       const text = await res.text();
-      console.log("📦 Raw GPT response text:", text);
-
       try {
-        const parsed = JSON.parse(text);
-        console.log("✅ Parsed GPT JSON:", parsed);
-        return parsed;
+        return JSON.parse(text);
       } catch (err) {
-        console.error("❌ Failed to parse GPT response:", err);
+        console.error("❌ GPT error:", err);
         return {
-          response: "[⚠️ 无法解析 GPT 返回结果]",
-          translated: "[⚠️ 无法获取翻译]"
+          response: "[⚠️ GPT 无法返回内容]",
+          translated: "[⚠️ 无法翻译内容]"
         };
       }
     })
@@ -160,7 +94,7 @@ Please confirm this by checking the exam image and then briefly explain why this
     })
     .catch(err => {
       responseBox.textContent = "发生错误，请稍后重试。";
-      console.error("❌ GPT error:", err);
+      console.error("❌ GPT request failed:", err);
     });
 
   questionInput.value = "";
@@ -212,7 +146,7 @@ function playTTS() {
 document.getElementById("ttsBtn")?.addEventListener("click", playTTS);
 document.getElementById("stopTTSBtn")?.addEventListener("click", () => {
   speechSynthesis.cancel();
-  console.log("🛑 TTS playback stopped");
+  console.log("🛑 TTS stopped");
 });
 
 if (window.SpeechRecognition || window.webkitSpeechRecognition) {
