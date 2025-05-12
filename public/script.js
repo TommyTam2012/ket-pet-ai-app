@@ -1,5 +1,3 @@
-// script.js - now with dynamic exam switching + multilingual TTS
-
 console.log("🟢 script.js loaded successfully");
 
 const responseBox = document.getElementById("responseBox");
@@ -14,17 +12,13 @@ translationBox.style.fontSize = "0.95em";
 translationBox.style.color = "#333";
 responseBox.insertAdjacentElement("afterend", translationBox);
 
-// 🧭 Default exam
 let currentExamId = "ket01";
 
-// 🧠 Dynamically switch exam set
 function setExam(examId) {
   currentExamId = examId;
-
   const folder = examId.startsWith("pet") ? "pet" : "KET";
   const pdfUrl = `/exams/${folder}/${examId}.pdf`;
   window.open(pdfUrl, "_blank");
-
   console.log(`📘 Exam set to ${examId}`);
 }
 
@@ -42,11 +36,18 @@ function submitQuestion() {
 
   const examFolder = currentExamId.startsWith("pet") ? "pet" : "KET";
 
-  const imageMessages = [
-    { type: "text", text: question }
-  ];
+  const examPageCount = {
+    ket01: 13,
+    ket02: 10,
+    pet01: 13,
+    pet02: 13
+  };
 
-  for (let i = 1; i <= 13; i++) {
+  const totalPages = examPageCount[currentExamId] || 13;
+
+  const imageMessages = [{ type: "text", text: question }];
+
+  for (let i = 1; i <= totalPages; i++) {
     const imageUrl = `/exams/${examFolder}/${currentExamId}_page${i}.png`;
     imageMessages.push({
       type: "image_url",
@@ -91,7 +92,6 @@ function addToHistory(question, answer) {
   historyList.prepend(li);
 }
 
-// 🧠 TTS language detection
 function detectLang(text) {
   return /[\u4e00-\u9fa5]/.test(text) ? "zh-CN" : "en-GB";
 }
@@ -128,7 +128,6 @@ function playTTS() {
 
 document.getElementById("ttsBtn")?.addEventListener("click", playTTS);
 
-// 🎤 Hold-to-speak mic input
 if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
@@ -168,6 +167,5 @@ if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   };
 }
 
-// 🌍 Expose to window
 window.submitQuestion = submitQuestion;
 window.setExam = setExam;
