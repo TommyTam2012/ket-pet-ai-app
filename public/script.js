@@ -1,10 +1,12 @@
+// script.js - supports multiple tests with dynamic PNG page ranges
+
 console.log("🟢 script.js loaded successfully");
 
+const fileInfo = document.getElementById("fileInfo");
 const responseBox = document.getElementById("responseBox");
 const questionInput = document.getElementById("questionInput");
 const historyList = document.getElementById("historyList");
 const micBtn = document.getElementById("micBtn");
-
 const translationBox = document.createElement("div");
 translationBox.id = "chineseTranslation";
 translationBox.style.marginTop = "10px";
@@ -13,13 +15,25 @@ translationBox.style.color = "#333";
 responseBox.insertAdjacentElement("afterend", translationBox);
 
 let currentExamId = "ket01";
+let currentExamPdf = "ket01.pdf";
+let currentPages = 13; // default to 13 pages
+
+const examMap = {
+  ket01: { pdf: "ket01.pdf", pages: 13 },
+  ket02: { pdf: "ket02.pdf", pages: 10 },
+  ket03: { pdf: "ket03.pdf", pages: 13 },
+  pet01: { pdf: "pet01.pdf", pages: 13 },
+  pet02: { pdf: "pet02.pdf", pages: 13 },
+  pet03: { pdf: "pet03.pdf", pages: 13 }
+};
 
 function setExam(examId) {
+  if (!examMap[examId]) return;
   currentExamId = examId;
-  const folder = examId.startsWith("pet") ? "pet" : "KET";
-  const pdfUrl = `/exams/${folder}/${examId}.pdf`;
-  window.open(pdfUrl, "_blank");
-  console.log(`📘 Exam set to ${examId}`);
+  currentExamPdf = examMap[examId].pdf;
+  currentPages = examMap[examId].pages;
+
+  fileInfo.innerHTML = `📄 PDF: <a href="/exams/${examId.startsWith('ket') ? 'KET' : 'PET'}/${currentExamPdf}" target="_blank">${currentExamPdf}</a><br>🖼️ PNG: ${examId}_page1.png ~ ${examId}_page${currentPages}.png`;
 }
 
 function submitQuestion() {
@@ -34,35 +48,12 @@ function submitQuestion() {
   responseBox.textContent = "正在分析，请稍候...";
   translationBox.textContent = "";
 
-  const examFolder = currentExamId.startsWith("pet") ? "pet" : "KET";
-  const level = currentExamId.startsWith("pet") ? "PET" : "KET";
-
-  const examPageCount = {
-    ket01: 13,
-    ket02: 10,
-    pet01: 13,
-    pet02: 13
-  };
-
-  const totalPages = examPageCount[currentExamId] || 13;
-
-  const instruction = `
-You are an English teacher helping a student prepare for the ${level} exam, working on ${currentExamId.toUpperCase()}.
-
-1. If the student pastes a short writing task (like an email or story), do NOT repeat the exam instructions. Instead, directly correct their writing: fix grammar, spelling, and structure. Then give 2–3 suggestions for improvement at the ${level} level.
-
-2. If the student asks about a specific exam question (e.g., "Q3", "Question 3", or "问题 3"), use the provided exam images for ${currentExamId.toUpperCase()}. Find the correct question and give a direct answer. You must prioritize identifying and answering anything that includes "Q", "Question", or "问题" followed by a number.
-
-Do not summarize instructions unless the student asks. Always respond with either writing feedback or the correct answer to the question mentioned.
-`;
-
   const imageMessages = [
-    { type: "text", text: instruction },
     { type: "text", text: question }
   ];
 
-  for (let i = 1; i <= totalPages; i++) {
-    const imageUrl = `/exams/${examFolder}/${currentExamId}_page${i}.png`;
+  for (let i = 1; i <= currentPages; i++) {
+    const imageUrl = `/exams/${currentExamId.startsWith('ket') ? 'KET' : 'PET'}/${currentExamId}_page${i}.png`;
     imageMessages.push({
       type: "image_url",
       image_url: { url: window.location.origin + imageUrl }
@@ -106,53 +97,29 @@ function addToHistory(question, answer) {
   historyList.prepend(li);
 }
 
-function detectLang(text) {
-  return /[\u4e00-\u9fa5]/.test(text) ? "zh-CN" : "en-GB";
-}
-
-function getVoiceForLang(lang) {
+// 🔊 Speech synthesis
+let ukVoice;
+window.speechSynthesis.onvoiceschanged = () => {
   const voices = speechSynthesis.getVoices();
-  if (lang === "zh-CN") {
-    return voices.find(v => v.lang === "zh-CN") || voices.find(v => v.name.includes("Google 普通话 女声"));
-  } else {
-    return voices.find(v => v.lang === "en-GB") || voices.find(v => v.name.includes("Google UK English Female"));
-  }
-}
-
-function speakMixed(text) {
-  const segments = text.split(/(?<=[。.!?])/).map(s => s.trim()).filter(Boolean);
-  const voices = speechSynthesis.getVoices();
-  let index = 0;
-
-  function speakNext() {
-    if (index >= segments.length) return;
-    const segment = segments[index++];
-    const lang = detectLang(segment);
-    const utter = new SpeechSynthesisUtterance(segment);
-    utter.lang = lang;
-    utter.voice = getVoiceForLang(lang);
-    utter.rate = 1;
-    utter.onend = speakNext;
-    speechSynthesis.speak(utter);
-  }
-
-  speechSynthesis.cancel();
-  speakNext();
-}
+  ukVoice = voices.find(v => v.name.includes("Google UK English Female")) ||
+            voices.find(v => v.lang === "en-GB") ||
+            voices[0];
+};
 
 function playTTS() {
-  const english = responseBox.textContent.trim();
-  const chinese = translationBox.textContent.replace(/^🇨🇳 中文翻译：/, "").trim();
-  speakMixed(`${english} ${chinese}`);
+  const englishText = responseBox.textContent.trim();
+  if (!englishText) return;
+
+  const utterance = new SpeechSynthesisUtterance(englishText);
+  utterance.voice = ukVoice || speechSynthesis.getVoices()[0];
+  utterance.lang = "en-GB";
+  utterance.rate = 1;
+  speechSynthesis.speak(utterance);
 }
 
 document.getElementById("ttsBtn")?.addEventListener("click", playTTS);
 
-document.getElementById("stopTTSBtn")?.addEventListener("click", () => {
-  speechSynthesis.cancel();
-  console.log("🛑 TTS playback stopped");
-});
-
+// 🎤 Hold-to-speak mic
 if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
