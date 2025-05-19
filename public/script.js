@@ -194,36 +194,47 @@ if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   recognition.continuous = false;
   recognition.interimResults = false;
 
-  micBtn.addEventListener("mousedown", () => {
-    recognition.start();
+  let finalTranscript = "";
+
+  recognition.onstart = () => {
     micBtn.textContent = "🎤 正在录音... (松开发送)";
-  });
-
-  micBtn.addEventListener("mouseup", () => {
-    recognition.stop();
-    micBtn.textContent = "🎤 语音提问";
-  });
-
-  micBtn.addEventListener("touchstart", () => {
-    recognition.start();
-    micBtn.textContent = "🎤 正在录音... (松开发送)";
-  });
-
-  micBtn.addEventListener("touchend", () => {
-    recognition.stop();
-    micBtn.textContent = "🎤 语音提问";
-  });
+    finalTranscript = "";
+  };
 
   recognition.onresult = (event) => {
-    const spoken = event.results[0][0].transcript;
-    questionInput.value = spoken;
-    submitQuestion();
+    finalTranscript = event.results[0][0].transcript;
+  };
+
+  recognition.onend = () => {
+    micBtn.textContent = "🎤 语音提问";
+    if (finalTranscript.trim()) {
+      questionInput.value = finalTranscript;
+      submitQuestion();
+    } else {
+      console.log("🛑 没有检测到语音。");
+    }
   };
 
   recognition.onerror = (event) => {
     alert("🎤 无法识别语音，请重试。");
     console.error("SpeechRecognition error:", event.error);
   };
+
+  micBtn.addEventListener("mousedown", () => {
+    recognition.start();
+  });
+
+  micBtn.addEventListener("mouseup", () => {
+    recognition.stop();
+  });
+
+  micBtn.addEventListener("touchstart", () => {
+    recognition.start();
+  });
+
+  micBtn.addEventListener("touchend", () => {
+    recognition.stop();
+  });
 }
 
 window.submitQuestion = submitQuestion;
