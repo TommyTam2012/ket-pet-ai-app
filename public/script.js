@@ -13,9 +13,8 @@ translationBox.style.color = "#333";
 responseBox.insertAdjacentElement("afterend", translationBox);
 
 let currentExamId = "ket01";
-let currentPages = 13; // default fallback
+let currentPages = 13;
 
-// ✅ Pages per test
 const pageCountMap = {
   ket01: 13,
   ket02: 10,
@@ -29,7 +28,6 @@ const pageCountMap = {
   pet05: 13
 };
 
-// ✅ Hardcoded answer with explanation
 const answerKey = {
   pet01: {
     33: {
@@ -58,7 +56,6 @@ function submitQuestion() {
   responseBox.textContent = "正在分析，请稍候...";
   translationBox.textContent = "";
 
-  // Normalize test name
   let normalizedId = currentExamId;
   if (/pet test 1/i.test(userInput)) normalizedId = "pet01";
   if (/pet test 2/i.test(userInput)) normalizedId = "pet02";
@@ -95,47 +92,64 @@ If possible, please try to help them by analyzing what they need.
     }];
   }
 
+  // ✅ Dynamically check only existing images
   const folder = currentExamId.startsWith("pet") ? "pet" : "KET";
+  const promises = [];
+
   for (let i = 1; i <= currentPages; i++) {
     const imageUrl = `${window.location.origin}/exams/${folder}/${currentExamId}_page${i}.png`;
-    messages.push({
-      type: "image_url",
-      image_url: { url: imageUrl }
-    });
+
+    const checkImage = fetch(imageUrl, { method: "HEAD" })
+      .then(res => {
+        if (res.ok) {
+          messages.push({
+            type: "image_url",
+            image_url: { url: imageUrl }
+          });
+        } else {
+          console.warn(`⚠️ Skipped missing image: ${imageUrl}`);
+        }
+      })
+      .catch(err => {
+        console.warn(`⚠️ Error checking image ${imageUrl}`, err);
+      });
+
+    promises.push(checkImage);
   }
 
-  fetch("/api/analyze", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt: userInput, messages })
-  })
-    .then(async res => {
-      const text = await res.text();
-      try {
-        return JSON.parse(text);
-      } catch (err) {
-        console.error("❌ GPT error:", err);
-        return {
-          response: "[⚠️ GPT 无法返回内容]",
-          translated: "[⚠️ 无法获取翻译]"
-        };
-      }
+  Promise.all(promises).then(() => {
+    fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: userInput, messages })
     })
-    .then(data => {
-      const answer = data.response || "无法获取英文回答。";
-      const translated = data.translated || "无法获取中文翻译。";
+      .then(async res => {
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (err) {
+          console.error("❌ GPT error:", err);
+          return {
+            response: "[⚠️ GPT 无法返回内容]",
+            translated: "[⚠️ 无法获取翻译]"
+          };
+        }
+      })
+      .then(data => {
+        const answer = data.response || "无法获取英文回答。";
+        const translated = data.translated || "无法获取中文翻译。";
 
-      responseBox.textContent = answer;
-      translationBox.textContent = `🇨🇳 中文翻译：${translated}`;
+        responseBox.textContent = answer;
+        translationBox.textContent = `🇨🇳 中文翻译：${translated}`;
+        addToHistory(userInput, `${answer}<br><em>🇨🇳 中文翻译：</em>${translated}`);
+      })
+      .catch(err => {
+        responseBox.textContent = "发生错误，请稍后重试。";
+        console.error("❌ GPT request failed:", err);
+      });
 
-      addToHistory(userInput, `${answer}<br><em>🇨🇳 中文翻译：</em>${translated}`);
-    })
-    .catch(err => {
-      responseBox.textContent = "发生错误，请稍后重试。";
-      console.error("❌ GPT request failed:", err);
-    });
-
-  questionInput.value = "";
+    questionInput.value = "";
+  });
 }
 
 function addToHistory(question, answer) {
@@ -190,18 +204,18 @@ document.getElementById("stopTTSBtn")?.addEventListener("click", () => {
 if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
-  recognition.lang = "zh-CN"; // keep Chinese voice input
+  recognition.lang = "zh-CN";
   recognition.continuous = false;
   recognition.interimResults = false;
 
   let finalTranscript = "";
   let isHoldingMic = false;
   let restartCount = 0;
-  const maxRestarts = 3; // ~10 seconds total (3x3s)
+  const maxRestarts = 3;
 
   recognition.onstart = () => {
     micBtn.textContent = "🎤 正在录音... (松开发送)";
-    console.log("🎙️ Mic started");
+    finalTranscript = "";
   };
 
   recognition.onresult = (event) => {
@@ -211,12 +225,10 @@ if (window.SpeechRecognition || window.webkitSpeechRecognition) {
 
   recognition.onend = () => {
     if (isHoldingMic && restartCount < maxRestarts) {
-      console.log("🔁 Restarting mic (hold still active)");
       restartCount++;
       recognition.start();
     } else {
       micBtn.textContent = "🎤 语音提问";
-      console.log("🛑 Mic released or max restarts reached");
       if (finalTranscript.trim()) {
         questionInput.value = finalTranscript;
         submitQuestion();
@@ -231,7 +243,6 @@ if (window.SpeechRecognition || window.webkitSpeechRecognition) {
     micBtn.textContent = "🎤 语音提问";
   };
 
-  // 🧲 Hold-to-speak logic
   micBtn.addEventListener("mousedown", () => {
     isHoldingMic = true;
     restartCount = 0;
