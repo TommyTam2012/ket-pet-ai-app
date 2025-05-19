@@ -79,6 +79,15 @@ If possible, please try to help them by analyzing what they need.
     }];
   }
 
+  // ✅ PNG image loop restored
+  for (let i = 1; i <= 13; i++) {
+    const imageUrl = `${window.location.origin}/exams/${currentExamId.startsWith("pet") ? "PET" : "KET"}/${currentExamId}_page${i}.png`;
+    messages.push({
+      type: "image_url",
+      image_url: { url: imageUrl }
+    });
+  }
+
   fetch("/api/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
