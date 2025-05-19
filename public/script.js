@@ -1,12 +1,10 @@
-// script.js - supports multiple tests with dynamic PNG page ranges
-
 console.log("🟢 script.js loaded successfully");
 
-const fileInfo = document.getElementById("fileInfo");
 const responseBox = document.getElementById("responseBox");
 const questionInput = document.getElementById("questionInput");
 const historyList = document.getElementById("historyList");
 const micBtn = document.getElementById("micBtn");
+
 const translationBox = document.createElement("div");
 translationBox.id = "chineseTranslation";
 translationBox.style.marginTop = "10px";
@@ -15,32 +13,28 @@ translationBox.style.color = "#333";
 responseBox.insertAdjacentElement("afterend", translationBox);
 
 let currentExamId = "ket01";
-let currentExamPdf = "ket01.pdf";
-let currentPages = 13; // default to 13 pages
 
-const examMap = {
-  ket01: { pdf: "ket01.pdf", pages: 13 },
-  ket02: { pdf: "ket02.pdf", pages: 10 },
-  ket03: { pdf: "ket03.pdf", pages: 13 },
-  pet01: { pdf: "pet01.pdf", pages: 13 },
-  pet02: { pdf: "pet02.pdf", pages: 13 },
-  pet03: { pdf: "pet03.pdf", pages: 13 }
+// ✅ Hardcoded answer with explanation
+const answerKey = {
+  pet01: {
+    33: {
+      answer: "B",
+      explanation: "B is correct because it logically completes the sentence in the reading cloze task."
+    }
+  }
 };
 
 function setExam(examId) {
-  if (!examMap[examId]) return;
   currentExamId = examId;
-  currentExamPdf = examMap[examId].pdf;
-  currentPages = examMap[examId].pages;
-
-  fileInfo.innerHTML = `📄 PDF: <a href="/exams/${examId.startsWith('ket') ? 'KET' : 'PET'}/${currentExamPdf}" target="_blank">${currentExamPdf}</a><br>🖼️ PNG: ${examId}_page1.png ~ ${examId}_page${currentPages}.png`;
+  const folder = examId.startsWith("pet") ? "pet" : "KET";
+  const pdfUrl = `/exams/${folder}/${examId}.pdf`;
+  window.open(pdfUrl, "_blank");
+  console.log(`📘 Exam set to ${examId}`);
 }
 
 function submitQuestion() {
-  console.log("🔥 submitQuestion triggered!");
-
-  const question = questionInput.value.trim();
-  if (!question || !currentExamId) {
+  const userInput = questionInput.value.trim();
+  if (!userInput || !currentExamId) {
     alert("⚠️ 请先选择试卷并输入问题。");
     return;
   }
@@ -48,30 +42,58 @@ function submitQuestion() {
   responseBox.textContent = "正在分析，请稍候...";
   translationBox.textContent = "";
 
-  const imageMessages = [
-    { type: "text", text: question }
-  ];
+  // Normalize test name
+  let normalizedId = currentExamId;
+  if (/pet test 1/i.test(userInput)) normalizedId = "pet01";
+  if (/pet test 2/i.test(userInput)) normalizedId = "pet02";
+  if (/ket test 1/i.test(userInput)) normalizedId = "ket01";
+  if (/ket test 2/i.test(userInput)) normalizedId = "ket02";
 
-  for (let i = 1; i <= currentPages; i++) {
-    const imageUrl = `/exams/${currentExamId.startsWith('ket') ? 'KET' : 'PET'}/${currentExamId}_page${i}.png`;
-    imageMessages.push({
-      type: "image_url",
-      image_url: { url: window.location.origin + imageUrl }
-    });
+  const level = normalizedId.startsWith("pet") ? "PET" : "KET";
+  const examName = `${level} Test ${normalizedId.slice(-1)}`;
+
+  const match = userInput.match(/(?:Q|Question|问题)\s*(\d+)/i);
+  const questionNumber = match ? parseInt(match[1]) : null;
+  const entry = answerKey[normalizedId]?.[questionNumber];
+
+  let messages = [];
+
+  if (entry?.answer && entry?.explanation) {
+    messages = [{
+      type: "text",
+      text: `
+The student is asking about ${examName}, Question ${questionNumber}.
+The correct answer is: ${entry.answer}
+Explanation: ${entry.explanation}
+Please explain this answer to the student in simple English so they understand why it is correct.
+`.trim()
+    }];
+  } else {
+    messages = [{
+      type: "text",
+      text: `
+The student said: "${userInput}"
+They may be asking about a question from the ${examName}.
+If possible, please try to help them by analyzing what they need.
+`.trim()
+    }];
   }
 
   fetch("/api/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt: question, messages: imageMessages })
+    body: JSON.stringify({ prompt: userInput, messages })
   })
     .then(async res => {
       const text = await res.text();
       try {
         return JSON.parse(text);
       } catch (err) {
-        console.error("❌ Server returned non-JSON:", text);
-        throw new Error("服务器返回非 JSON 内容");
+        console.error("❌ GPT error:", err);
+        return {
+          response: "[⚠️ GPT 无法返回内容]",
+          translated: "[⚠️ 无法获取翻译]"
+        };
       }
     })
     .then(data => {
@@ -81,11 +103,11 @@ function submitQuestion() {
       responseBox.textContent = answer;
       translationBox.textContent = `🇨🇳 中文翻译：${translated}`;
 
-      addToHistory(question, `${answer}<br><em>🇨🇳 中文翻译：</em>${translated}`);
+      addToHistory(userInput, `${answer}<br><em>🇨🇳 中文翻译：</em>${translated}`);
     })
     .catch(err => {
       responseBox.textContent = "发生错误，请稍后重试。";
-      console.error("❌ GPT error:", err);
+      console.error("❌ GPT request failed:", err);
     });
 
   questionInput.value = "";
@@ -97,29 +119,49 @@ function addToHistory(question, answer) {
   historyList.prepend(li);
 }
 
-// 🔊 Speech synthesis
-let ukVoice;
-window.speechSynthesis.onvoiceschanged = () => {
+function detectLang(text) {
+  return /[\u4e00-\u9fa5]/.test(text) ? "zh-CN" : "en-GB";
+}
+
+function getVoiceForLang(lang) {
   const voices = speechSynthesis.getVoices();
-  ukVoice = voices.find(v => v.name.includes("Google UK English Female")) ||
-            voices.find(v => v.lang === "en-GB") ||
-            voices[0];
-};
+  return lang === "zh-CN"
+    ? voices.find(v => v.lang === "zh-CN") || voices.find(v => v.name.includes("Google 普通话 女声"))
+    : voices.find(v => v.lang === "en-GB") || voices.find(v => v.name.includes("Google UK English Female"));
+}
+
+function speakMixed(text) {
+  const segments = text.split(/(?<=[。.!?])/).map(s => s.trim()).filter(Boolean);
+  let index = 0;
+
+  function speakNext() {
+    if (index >= segments.length) return;
+    const segment = segments[index++];
+    const lang = detectLang(segment);
+    const utter = new SpeechSynthesisUtterance(segment);
+    utter.lang = lang;
+    utter.voice = getVoiceForLang(lang);
+    utter.rate = 1;
+    utter.onend = speakNext;
+    speechSynthesis.speak(utter);
+  }
+
+  speechSynthesis.cancel();
+  speakNext();
+}
 
 function playTTS() {
-  const englishText = responseBox.textContent.trim();
-  if (!englishText) return;
-
-  const utterance = new SpeechSynthesisUtterance(englishText);
-  utterance.voice = ukVoice || speechSynthesis.getVoices()[0];
-  utterance.lang = "en-GB";
-  utterance.rate = 1;
-  speechSynthesis.speak(utterance);
+  const english = responseBox.textContent.trim();
+  const chinese = translationBox.textContent.replace(/^🇨🇳 中文翻译：/, "").trim();
+  speakMixed(`${english} ${chinese}`);
 }
 
 document.getElementById("ttsBtn")?.addEventListener("click", playTTS);
+document.getElementById("stopTTSBtn")?.addEventListener("click", () => {
+  speechSynthesis.cancel();
+  console.log("🛑 TTS stopped");
+});
 
-// 🎤 Hold-to-speak mic
 if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
