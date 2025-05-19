@@ -195,44 +195,64 @@ if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   recognition.interimResults = false;
 
   let finalTranscript = "";
+  let isHoldingMic = false;
+  let restartCount = 0;
+  const maxRestarts = 3; // ~10 seconds total (3x3s)
 
   recognition.onstart = () => {
     micBtn.textContent = "🎤 正在录音... (松开发送)";
-    finalTranscript = "";
+    console.log("🎙️ Mic started");
   };
 
   recognition.onresult = (event) => {
     finalTranscript = event.results[0][0].transcript;
+    console.log("📥 Captured:", finalTranscript);
   };
 
   recognition.onend = () => {
-    micBtn.textContent = "🎤 语音提问";
-    if (finalTranscript.trim()) {
-      questionInput.value = finalTranscript;
-      submitQuestion();
+    if (isHoldingMic && restartCount < maxRestarts) {
+      console.log("🔁 Restarting mic (hold still active)");
+      restartCount++;
+      recognition.start();
     } else {
-      console.log("🛑 没有检测到语音。");
+      micBtn.textContent = "🎤 语音提问";
+      console.log("🛑 Mic released or max restarts reached");
+      if (finalTranscript.trim()) {
+        questionInput.value = finalTranscript;
+        submitQuestion();
+      } else {
+        console.log("⚠️ 没有检测到语音内容。");
+      }
     }
   };
 
   recognition.onerror = (event) => {
-    alert("🎤 无法识别语音，请重试。");
-    console.error("SpeechRecognition error:", event.error);
+    console.error("🎤 Speech error:", event.error);
+    micBtn.textContent = "🎤 语音提问";
   };
 
+  // 🧲 Hold-to-speak logic
   micBtn.addEventListener("mousedown", () => {
+    isHoldingMic = true;
+    restartCount = 0;
+    finalTranscript = "";
     recognition.start();
   });
 
   micBtn.addEventListener("mouseup", () => {
+    isHoldingMic = false;
     recognition.stop();
   });
 
   micBtn.addEventListener("touchstart", () => {
+    isHoldingMic = true;
+    restartCount = 0;
+    finalTranscript = "";
     recognition.start();
   });
 
   micBtn.addEventListener("touchend", () => {
+    isHoldingMic = false;
     recognition.stop();
   });
 }
