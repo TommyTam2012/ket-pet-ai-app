@@ -26,7 +26,7 @@ const answerKey = {
 
 function setExam(examId) {
   currentExamId = examId;
-  const folder = examId.startsWith("pet") ? "pet" : "KET";
+  const folder = examId.startsWith("pet") ? "pet" : "KET";  // ✅ Correct casing
   const pdfUrl = `/exams/${folder}/${examId}.pdf`;
   window.open(pdfUrl, "_blank");
   console.log(`📘 Exam set to ${examId}`);
@@ -79,9 +79,10 @@ If possible, please try to help them by analyzing what they need.
     }];
   }
 
-  // ✅ PNG image loop: reduced to first 5 pages for testing
+  // ✅ PNG image loop: sends only pages 1 to 5, with correct folder casing
+  const folder = currentExamId.startsWith("pet") ? "pet" : "KET";
   for (let i = 1; i <= 5; i++) {
-    const imageUrl = `${window.location.origin}/exams/${currentExamId.startsWith("pet") ? "PET" : "KET"}/${currentExamId}_page${i}.png`;
+    const imageUrl = `${window.location.origin}/exams/${folder}/${currentExamId}_page${i}.png`;
     messages.push({
       type: "image_url",
       image_url: { url: imageUrl }
