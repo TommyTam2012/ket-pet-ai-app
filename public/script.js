@@ -190,7 +190,7 @@ document.getElementById("stopTTSBtn")?.addEventListener("click", () => {
 if (window.SpeechRecognition || window.webkitSpeechRecognition) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
-  recognition.lang = "zh-CN";
+  recognition.lang = "zh-CN"; // keep Chinese voice input
   recognition.continuous = false;
   recognition.interimResults = false;
 
