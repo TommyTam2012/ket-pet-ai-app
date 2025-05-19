@@ -13,6 +13,21 @@ translationBox.style.color = "#333";
 responseBox.insertAdjacentElement("afterend", translationBox);
 
 let currentExamId = "ket01";
+let currentPages = 13; // default fallback
+
+// ✅ Pages per test
+const pageCountMap = {
+  ket01: 13,
+  ket02: 10,
+  ket03: 13,
+  ket04: 13,
+  ket05: 13,
+  pet01: 13,
+  pet02: 13,
+  pet03: 13,
+  pet04: 13,
+  pet05: 13
+};
 
 // ✅ Hardcoded answer with explanation
 const answerKey = {
@@ -26,7 +41,8 @@ const answerKey = {
 
 function setExam(examId) {
   currentExamId = examId;
-  const folder = examId.startsWith("pet") ? "pet" : "KET";  // ✅ Correct casing
+  currentPages = pageCountMap[examId] || 13;
+  const folder = examId.startsWith("pet") ? "pet" : "KET";
   const pdfUrl = `/exams/${folder}/${examId}.pdf`;
   window.open(pdfUrl, "_blank");
   console.log(`📘 Exam set to ${examId}`);
@@ -79,9 +95,8 @@ If possible, please try to help them by analyzing what they need.
     }];
   }
 
-  // ✅ PNG image loop: sends only pages 1 to 5, with correct folder casing
   const folder = currentExamId.startsWith("pet") ? "pet" : "KET";
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 1; i <= currentPages; i++) {
     const imageUrl = `${window.location.origin}/exams/${folder}/${currentExamId}_page${i}.png`;
     messages.push({
       type: "image_url",
